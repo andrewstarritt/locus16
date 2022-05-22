@@ -1,0 +1,15 @@
+.sentinal
+locus16
+build_datetime.cpp
+punchout.txt
+*.o
+*.user
+*.user.11
+*.phx
+*.ocb
+*.map
+*.log
+*.kate-swp
+z*
+*~
+.~lock.*

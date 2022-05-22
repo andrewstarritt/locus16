@@ -1,0 +1,522 @@
+// rom.dc1
+//
+// Implements a ROM loader
+// Reader from paper tape device
+// Report to the terminal.
+//
+
+NOOP==XFFFE  // A no-op instruction - force emulator to stop
+
+ALP, =X8000
+BEGIN
+
+   // Entry is on level 1, with no registeres defined,
+   // except the P reg set to =X8000
+   //
+   // Force and secondary ALP to enter a wait loop
+   // Either ALP can/does execute this code.
+   //
+   SETS   APROC2P1,P
+   SETA   AWAIT,P
+   STRA   0,S
+
+   J      INITMEM
+
+// Address of secondary ALP P1 register.
+//
+APROC2P1:
+   =E =X7E12
+AWAIT:
+   =E WAIT
+WAIT:
+   J      WAIT
+END
+
+
+// Set all memory to jump self
+//
+INITMEM:
+BEGIN
+   // First do regular memory
+   //
+   SETS   AMEMCTL,P
+   SETA   0,L
+   STRA   0,S
+
+   SETA   JUMPSELF,P
+   SETR   AFIRST,P
+SETMEM1:
+   CMPR   ALAST,P
+   JGE    REGDONE
+   STRA   0,R
+   ADDR   2,L
+   J      SETMEM1
+REGDONE:
+
+// Can start using T space now
+//
+TSIZE=4
+MAP=-2
+   SETT   ATSPACE,P
+   ADDT   TSIZE,L
+
+   SETS   AMEMCTL,P
+   SETA   ALLNIBS,P   // =X1111
+   STRA   0,S
+
+NEXT:
+   STRA   MAP,T
+   SETA   JUMPSELF,P
+   SETR   ASTART,P
+SETMEM2:
+   CMPR   AFINISH,P
+   JGE    MAPDONE
+   STRA   0,R
+   ADDR   2,L
+   J      SETMEM2
+MAPDONE:
+   SETA   MAP,T
+   ADDA   ALLNIBS,P   // =X2222, =X3333, ... =XFFFF, =X1110
+   CMPA   COMPLETE,P
+   JNE    NEXT
+
+// All done - select regular memory
+//
+   SETS   AMEMCTL,P
+   SETA   0,L
+   STRA   0,S
+
+   SUBT   TSIZE,L
+   J      LOADER
+
+AMEMCTL:        // Primary ALP memory controller
+   =E =X7B00
+JUMPSELF:
+   J     .
+ATSPACE:        // Use top 128 bytes of RAM - note: not dynamically mapped
+   =E =X6F80
+AFIRST:         // inclusive
+   =E =X9000
+ALAST:          // exclusive
+   =E =X7000
+ALLNIBS:
+   =E =X1111
+COMPLETE:
+   =E =X1110
+ASTART:         // inclusive
+   =E =X2000
+AFINISH:        // exclusive
+   =E =X6000
+END
+
+LOADER:
+BEGIN
+SOH=1
+STX=2
+ETX=3
+CR==X0D
+LF==X0A
+TDIR==C"T"
+JDIR==C"J"
+
+LOADPOINT=-2
+JUMPPOINT=-4
+BYTE=-6
+SSAVE=-8
+TSIZE=10
+
+   // Set up stack space
+   //
+   ADDT   TSIZE,L
+
+   // Output the nice loader welcome message.
+   //
+   SETA   AWELCOME,P
+   SETR   ATERMOUT,P
+   JS     APUTBYTES,I
+
+   // Now start reading from tape
+   //
+SEEKSOH:
+   JS     READBYTE
+   CMPA   SOH,L
+   JNE    SEEKSOH
+
+SEEKSTX:
+   JS     READBYTE
+   CMPA   STX,L
+   JEQ    FOUNDSTX
+   // Copy header text to terminal
+   SETR   ATERMOUT,P
+   JS     APUTBYTE,I
+   J      SEEKSTX
+
+
+AWELCOME:
+   =E WELCOME
+ATERMOUT:
+   =E =X7B14
+APUTBYTES:
+   =E PUTBYTES
+ATAPEREADER:
+   =E =X7B18
+AGETBYTE:
+   =E GETBYTE
+APUTBYTE:
+   =E PUTBYTE
+X9000:
+   =E =X9000
+
+
+   // Set default load point and jump point
+   //
+FOUNDSTX:
+   SETA   X9000,P
+   STRA   LOADPOINT,T
+   STRA   JUMPPOINT,T
+
+MAINLOOP:
+   JS     READBYTE
+   CMPA   CR,L
+   JEQ    MAINLOOP
+   CMPA   LF,L
+   JEQ    MAINLOOP
+
+   CMPA   TDIR,L
+   JNE    SKIP1
+
+   // Handle T directive
+   //
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L          // JNGA would be nice
+   JLT    FAIL
+   SHLA   12,L         // to most significant nibble
+   STRA   LOADPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   8,L          // to next nibble
+   IORA   LOADPOINT,T
+   STRA   LOADPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   4,L          // to next nibble
+   IORA   LOADPOINT,T
+   STRA   LOADPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   IORA   LOADPOINT,T
+   STRA   LOADPOINT,T
+   J      MAINLOOP
+
+SKIP1:
+   CMPA   JDIR,L
+   JNE    SKIP2
+
+   // Essentially a repeat of the above
+   // Handle J directive
+   //
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   12,L          // to most significant nibble
+   STRA   JUMPPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   8,L          // to next nibble
+   IORA   JUMPPOINT,T
+   STRA   JUMPPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   4,L          // to next nibble
+   IORA   JUMPPOINT,T
+   STRA   JUMPPOINT,T
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   IORA   JUMPPOINT,T
+   STRA   JUMPPOINT,T
+   J      SEEKETX
+
+SKIP2:
+   // Regular hex pair 
+   // First hex char already in the A reg
+   //
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   SHLA   4,L          // to most significant nibble
+   STRA   BYTE,TB
+
+   JS     READBYTE
+   JS     AHEXTOVAL,I
+   CMPA   0,L
+   JLT    FAIL
+   IORA   BYTE,TB
+
+   // Now load the byte
+   //
+   SETR   LOADPOINT,T
+   STRA   0,RB
+   ADDR   1,L
+   STRR   LOADPOINT,T
+   J      MAINLOOP
+
+SEEKETX:
+   JS     READBYTE
+   CMPA   ETX,L
+   JEQ    DONE
+   CMPA   CR,L
+   JEQ    SEEKETX
+   CMPA   LF,L
+   JEQ    SEEKETX
+    
+FAIL:
+   SETA   AFAILURE,P
+   SETR   ATERMOUT,P
+   JS     APUTBYTES,I
+   =E NOOP       // A no-op - force emulator to stop
+   J      .
+
+DONE:
+   SETA   ASUCCESS,P
+   SETR   ATERMOUT,P
+   JS     APUTBYTES,I
+   
+   // Enter loaded program - still on level 1
+   // Should we clear any registers?
+   //
+   SETA   0,L
+   SETR   0,L
+   SETS   0,L
+   J      JUMPPOINT,TI
+
+// Local wrapper function
+//
+READBYTE:
+   STRS   SSAVE,T
+   SETR   ATAPEREADER,P
+   SETA   D500,P     // timeout is 500 mSec
+   JS     AGETBYTE,I
+   CMPS   0,L        // test for error
+   JLT    FAIL
+   ANDA   =X7F,L     // Strip off any parity here
+   J      SSAVE,TI
+
+AHEXTOVAL:
+   =E HEXTOVAL
+AFAILURE:
+   =E FAILURE
+ASUCCESS:
+   =E SUCCESS
+D500:
+   =E 500
+
+DATA
+WELCOME:
+   =C"Locus 16 ROM Loader..."
+   =X0D0A00
+FAILURE:
+   =C"Load failure"
+   =X0D0A00
+SUCCESS:
+   =C"Load successful"
+   =X0D0A0D0A00
+ALP
+END
+
+// Attemps to convert a hexadecimal character '0'..'9' or 'A'..'F'
+// to equivilent integer value range 0..15.
+// The hex char is in th A reg.
+// The result is i the A reg - returns -1 if not a hex char.
+// 
+HEXTOVAL:
+BEGIN
+   STRS    0,T        // Save return address
+   CMPA    =C"0",L   
+   JLT     TRYLETTER
+   CMPA    =C"9"+1,L
+   JGE     TRYLETTER
+   SUBA    =C"0",L
+   J       0,TI       // return
+
+TRYLETTER:
+   CMPA    =C"A",L   
+   JLT     FAIL
+   CMPA    =C"F"+1,L
+   JGE     FAIL
+   SUBA    =C"A"-10,L
+   J       0,TI       // return
+
+FAIL:
+   SETA    NEG1,P
+   J       0,TI       // return
+NEG1:
+   =E -1
+END
+
+
+// Write string to the output
+// Address of string to write is in A reg
+// The device address is in the R reg
+//
+PUTBYTES:
+BEGIN
+TSIZE=6
+DATAPTR=-2
+DEVADDR=-4
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   STRA    DATAPTR,T
+   STRR    DEVADDR,T
+LOOP:
+   // Read and inc data/text pointer.
+   SETR    DATAPTR,T
+   SETA    0,RB
+   ADDR    1,L
+   STRR    DATAPTR,T
+
+   // All done?
+   CMPA    0,L
+   JEQ     DONE
+   
+   // Output
+   SETR    DEVADDR,T
+   JS      APUTBYTE,I
+   J       LOOP
+DONE:
+   SUBT    TSIZE,L
+   J       0,TI       // return
+
+APUTBYTE:
+   =E PUTBYTE
+END
+
+
+// Serial device register offsets and okay mask value.
+//
+STATUSREG=0
+OKMASK==XF000
+OKSTAT==XC000
+
+DATAREG=2
+
+// Write a single byte to the output
+// Char to write is in the A reg
+// The device address is in the R reg
+//
+PUTBYTE:
+BEGIN
+TSIZE=4
+CHAR=-2
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   STRA    CHAR,TB
+RETRY:
+   // Wait until status is okay, as in ready to accept a byt.
+   //
+   SETA    STATUSREG,R
+   ANDA    AOKMASK,P
+   CMPA    AOKSTAT,P
+   JNE     RETRY
+
+// Now ready to write.
+//
+   SETA    CHAR,TB
+   STRA    DATAREG,R
+
+   SUBT    TSIZE,L
+   J       0,TI       // return
+AOKMASK:
+   =E OKMASK
+AOKSTAT:
+   =E OKSTAT
+END
+
+// Read a single byte from the input device.
+// The timeout is in A reg (in mSec) - note busy wait timeout.
+// The device address is in the R reg
+// The read bytes is returned in the A reg
+// The success(0)/fail(-1) status is in the S reg
+//
+GETBYTE:
+BEGIN
+TSIZE=6
+COUNT=-2
+MSEC=-4
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   STRA    MSEC,T
+
+   SETA    INNER,P    // Set inner count
+   STRA    COUNT,T
+
+RETRY:
+   SETA    COUNT,T    // Decrement inner count
+   SUBA    1,L
+   STRA    COUNT,T
+   CMPA    1,L        // Count down complete?
+   JGE     CONTINUE
+
+   SETA    INNER,P    // Reset inner
+   STRA    COUNT,T
+
+   SETA    MSEC,T     // Decrement outer count
+   SUBA    1,L
+   STRA    MSEC,T
+   CMPA    1,L        // mSec count down complete?
+   JGE     CONTINUE
+
+   SETS    0,L        // Timeout
+   SUBS    1,L
+   J       EXIT
+
+CONTINUE:
+   SETA    STATUSREG,R
+   ANDA    AOKMASK,P
+   CMPA    AOKSTAT,P
+   JNE     RETRY
+
+// Now ready to read.
+//
+   SETA    DATAREG,R
+   ANDA    255,L      // Isolate byte
+   SETS    0,L
+
+EXIT:
+   SUBT    TSIZE,L
+   J       0,TI       // return
+
+// A mSec is approx 444 Locus instructions which is approx 35520
+// emulated instructions (the speed factor of about 80), which is
+// 3640 times round the inner loop.
+//
+INNER:
+   =E 3640
+AOKMASK:
+   =E OKMASK
+AOKSTAT:
+   =E OKSTAT
+END
+
+ZZZZ:
+
+// end

@@ -1,0 +1,4 @@
+Locus16 Emulator  Copyright (C) 2021-2022 Andrew C. Starritt
+This program comes with ABSOLUTELY NO WARRANTY, for details run 'locus16 --warranty'.
+This is free software, and you are welcome to redistribute it under certain conditions,
+run 'locus16 --redistribute' for details.

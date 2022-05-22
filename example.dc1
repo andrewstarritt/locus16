@@ -1,0 +1,227 @@
+// example.dc1
+//
+
+ALP
+
+TERMINPUT==X7B10
+TERMOUTPUT==X7B14
+
+STATUSREG=0
+DATAREG=2
+OKMASK==XF000
+OKSTAT==XC000
+
+START:
+BEGIN
+NOOP==XFFFE   // no op - force emulator to stop
+   JS     SETLEVEL0
+   SETT   ATSPACE,P
+   JS     MAIN
+   SETL   1
+ATSPACE:
+  =E =X6000
+
+SETLEVEL0:
+   SETR   AX7F02,P
+   STRS   0,R
+   SETL   0
+   J      AX8000,I  // re-enter the loader
+AX7F02:
+  =E =X7F02
+AX8000:
+  =E =X8000
+END
+
+// Main program
+//
+MAIN:
+BEGIN 
+TSIZE=6
+DPTR=-2
+COUNT=-4
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+
+   SETR    ASTARTTEXT,P
+   JS      APUTBYTES,I
+
+   SETA    0,L
+   STRA    COUNT,T
+LOOP:
+   SETA    COUNT,T
+   CMPA    5,L
+   JGE     DONE
+   ADDA    1,L
+   STRA    COUNT,T
+
+   SETA    80,L
+   SETR    ABUFFER,P
+   JS      AGETBYTES,I
+
+   SETR    ABUFFER,P
+   SETA    0,L
+   STRA    80,RB      // belts'n'braces
+   JS      APUTBYTES,I
+
+   J       LOOP
+
+DONE:
+   SETR    AENDTEXT,P
+   JS      APUTBYTES,I
+
+   SUBT    TSIZE,L
+   J       0,TI       // return
+
+ASTARTTEXT:
+   =E STARTTEXT
+AENDTEXT:
+   =E ENDTEXT
+APUTBYTES:
+   =E PUTBYTES
+AGETBYTES:
+   =E GETBYTES
+ABUFFER:
+   =E =X0000          // arbitary
+END
+
+DATA
+STARTTEXT:
+   =C"Data Code 1 Example using the Locus 16 Emulator"
+   =X1D0A    // Trailing CR LF
+   =C"I will copy the next five lines of text"
+   =X1D0A    // Trailing CR LF
+   =X00      // Trailing Zero
+ENDTEXT:
+   =C"Bye...."
+   =X1D0A    // Trailing CR LF
+   =X00      // Trailing Zero
+ALP
+
+// Write string to the output
+// String to write is in R reg
+//
+PUTBYTES:
+BEGIN
+TSIZE=6
+DPTR=-2
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+LOOP:
+   SETA    0,RB
+   CMPA    0,L
+   JEQ     DONE
+   STRR    DPTR,T
+   JS      APUTBYTE,I
+   SETR    DPTR,T
+   ADDR    1,L
+   J       LOOP
+DONE:
+   SUBT    TSIZE,L
+   J       0,TI       // return
+
+APUTBYTE:
+   =E PUTBYTE
+END
+
+
+// Write a single byte to the output
+// Char to write is in the A reg
+//
+PUTBYTE:
+BEGIN
+TSIZE=4
+CHAR=-2
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   STRA    CHAR,TB
+   SETS    ASERIAL,P
+RETRY:
+   SETA    STATUSREG,S
+   ANDA    AOKMASK,P
+   CMPA    AOKSTAT,P
+   JNE     RETRY
+
+// Now ready to write.
+//
+   SETA    CHAR,TB
+   STRA    DATAREG,S
+
+   SUBT    TSIZE,L
+   J       0,TI       // return
+ASERIAL:
+   =E TERMOUTPUT
+AOKMASK:
+   =E OKMASK
+AOKSTAT:
+   =E OKSTAT
+END
+
+// Read a strin into a buffer
+// Buffer size in the A reg
+// Buffer address in the R reg
+//
+GETBYTES:
+BEGIN
+TSIZE=8
+DPTR=-2
+SIZE=-4
+LAST=-6
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   STRA    SIZE,T
+   STRR    DPTR,T
+   ADDR    SIZE,T
+   SUBR    1,L        // leave room for the zero
+   STRR    LAST,T
+LOOP:
+   SETR    DPTR,T
+   CMPR    LAST,T
+   JGE     DONE
+   JS      AGETBYTE,I
+   SETR    DPTR,T
+   STRA    0,RB
+   ADDR    1,L
+   STRR    DPTR,T
+   CMPA    =X0A,L     // end of line
+   JNE     LOOP
+DONE:
+   SETA    0,L
+   STRA    0,RB
+   SUBT    TSIZE,L
+   J       0,TI       // return
+AGETBYTE:
+   =E GETBYTE
+END
+
+// Read a sigle byte from the input
+// Char read is in the A reg
+//
+GETBYTE:
+BEGIN
+TSIZE=2
+   STRS    0,T        // Save return address
+   ADDT    TSIZE,L
+   SETS    ASERIAL,P
+RETRY:
+   SETA    STATUSREG,S
+   ANDA    AOKMASK,P
+   CMPA    AOKSTAT,P
+   JNE     RETRY
+
+// Now ready to read.
+//
+   SETA    DATAREG,S
+   ANDA    255,L
+   SUBT    TSIZE,L
+   J       0,TI       // return
+ASERIAL:
+   =E TERMINPUT
+AOKMASK:
+   =E OKMASK
+AOKSTAT:
+   =E OKSTAT
+END
+
+
+// FINISH, FRED;
+// End

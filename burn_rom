@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# Crates a rom file from some PHX.
+# Currently uses ace and format which are not generally available.
+#
+
+phx_file=rom.phx
+rom_file=rom.dat
+
+dc1 rom.dc1 || exit 1
+
+echo "Buring ${phx_file:?} to ${rom_file:?}"
+
+temp=/tmp/${USER}_burm_rom_$$
+
+ace ${phx_file:?}  ${temp:?} <<HERE > /dev/null
+u*/T8000/s// f/J9000/ b k* b m-
+(i/C102/16b) 128
+%C
+HERE
+
+format -c htob ${temp:?} | head -c 4096 > ${rom_file:?}
+echo "Done"
+
+ls -l  ${rom_file:?}
+rm -f ${temp:?}
+
+# end
