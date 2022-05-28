@@ -1,6 +1,11 @@
 Arguments:
-  Program - the name of the file to be loaded and executed. The expected
-  format is PHX with parity ignored. OCB format not available yet.
+  INTPUT    The name of the file attached to the tape reader peripheral device.
+            When using the standard rom, this is the program file, i.e. the name
+            of the file to be loaded and executed. The expected format is PHX 
+            (with no parity checks enforced). OCB format not available yet.
+
+  OUTPUT    The name of the file attached to the tape punch peripheral device.
+            If not specified, the filename "punchout.txt" is used by default.
 
 Options:
   -h, --help         Show this help message and exit.
@@ -8,6 +13,9 @@ Options:
   -v, --version      Show program version and exit.
   -w, --warranty     Show warranty disclaimer and exit.
   -r, --redistrubute Show re-distribution advice and exit.
+  -s, --sleep        Specifies the number of instructions executed before a 1 micro-second
+                     sleep by the emulator. The default value is 27 which corresponds to
+                     the ALP1 processor running approximately real time on my system. 
 
 Environment Variables:
   None

@@ -3,6 +3,7 @@
 [Introduction](#intro)<br>
 [General Information](#gen_info)<br>
 [Status](#status)<br>
+[Commands](#commands)<br>
 <br>
 <br>
 ![](locus16_crate.png?raw=true)
@@ -26,13 +27,18 @@ hard coded.
 These are:
  - Primary ALP1 Processor
  - Memory and memory mapping controller.
- - ROM module.
+ - ROM module (using rom.dat binary file loaded at program startup)
  - A terminal pheripheral
  - A tape reader pheripheral
  - A tape punch pheripheral
  - Two serial channels (one input, one output) connected to the terminal
  - One serial channel (input) connected to the tape reader.
  - One serial channel (output) connected to the tape punch.
+
+The emulator attempts to run at the same speed as the original Locus 16.
+This is acheived by calling usleep\(1\) every 27 instructions.
+27 was found empirically and suits my home system.
+The -s/--sleep option can be used to adjust this value.
 
 Ideally, in future, the crate configuration would be specified using a
 configuration file.
@@ -58,7 +64,7 @@ and for older distros:
 
     yum install  inih-devel
 
-On Debian and similar distros (e.g. Ubuntu, Kbuntu) run:
+On Debian and similar distreos (e.g. Ubuntu, Kbuntu) run:
 
     apt install libinih-dev
 
@@ -87,7 +93,7 @@ This section includes details what's missing, guessed and/or left to do.
 
 ## <span style='color:#a0a000'>Emulator Command Line</span>
 
-The emulator provide a command line interface (separate from the terminal, 
+The emulator provide a command line interface (separate from the terminal,
 see below).
 Type help (actually "he" on its own will do) for a list of commands.
 
@@ -140,7 +146,8 @@ The mapping used at the moment is:
 The JEZA, JNZA, JPZA and JNGA (ditto the R ans S registers) instructions need
 an op code, however even if made up, there does not seem to be enough op-code
 space for these instructions.
-I have assumed that  __SETA ....__  does an implicit __CMPA 0,L__ , and these instructions are just synonyms for JLT, JGE, JEQ or JNE.
+I have assumed that  __SETA ....__  does an implicit __CMPA 0,L__ , and these
+instructions are just synonyms for JLT, JGE, JEQ or JNE.
 
 ## <span style='color:#a0a000'>Assembler</span>
 
@@ -290,10 +297,73 @@ as the second parameter if porvided, otherwise to the file punchout.txt
 
 Serial channel 4 can be used to access the tape punch.
 
+## <span style='color:#a0a000'>Clock</span>
+
+The clock can be configured to interrupt the ALP.
+The status register is located at =X7C00. Write 1 to least significant
+bit of the  status register to start the clock, write 0 to stop the clock.
+The status (running/stopped) can be obtained by reading read the status register
+and examining the least significant bit.
+
+The clock interupt interval is set by writing to =X7C02.
+The value is in milli-seconds.
+Zero and negative values are undefined.
+
+Note: each instruction is assumed to take 2.25 (simulated) micro seconds,
+so 444 instructions will take approximately 1 (simulated) milli-second.
+
 ## <span style='color:#a0a000'>TODO</span>
 
-- Real time clock (at =X7Cxx)
+# <a name="commands"></a><span style='color:#ee6600'>Commands</span>
 
+For the emulator itself, runs
 
-<font size="-1">Last updated: Sun May 22 14:43:24 AEST 2022</font>
+    locus16 --help
+
+for the command line options.
+
+Once the emulator starts, it displays its version, configuration data,
+and the current register values e.g.
+```
+Locus 16 Emulator Version 0.3.3  Build Sat 28 May 2022 04:36:47 UTC
+Available devices
+ 1 Memory Controller    0x7B00  0x7B10
+ 2 Memory               0x9000  0x7000
+ 3 ROM                  0x8000  0x9000
+ 4 Clock                0x7C00  0x7C04
+ 5 ALP1 Processor (1)   0x7F00  0x7FFF *
+ 6 Serial               0x7B10  0x7B14
+ 7 Serial               0x7B14  0x7B18
+ 8 Serial               0x7B18  0x7B1C
+ 9 Serial               0x7B1C  0x7B20
+
+Number of active devices: 1
+
+ROM 4096 bytes loaded from rom.dat
+
+1: Level 1: P: 8000  A: 0000  R: 0000  S: 0000  T: 0000  C: 0  V: 0  K: 0
+```
+
+At the prompt (> ), the use may enter the following commands.
+Note: All commands are essenitally two letters.
+For commands without any parameters, text after the two letters is igmored.
+
+ - EX                   exit
+ - CU [number]          continue, optional number of instructions
+ - SS                   step 1 instruction, same as CU 1
+ - AA hexaddr [number]  access address, optional number of words
+ - DM hexaddr [number]  dump memory, optional number of words
+ - DR                   dump ALP registers for current level
+ - SB hexaddr           set break point
+ - CB hexaddr           clear break point
+ - LB                   list break points
+ - HE                   help
+ - // <any text>        comment - ignored.
+
+When running Ctrl+C can be used to interrupt the emulator and return
+to the command prompt.
+Note: if the ALP attempts to execute an invalid OP code (e.g. =XFFFE)
+teh emulator will pause and return to the command prompt.
+
+<font size="-1">Last updated: Sat May 28 17:52:41 AEST 2022</font>
 <br>

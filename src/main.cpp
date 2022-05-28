@@ -72,6 +72,9 @@ PUT_RESOURCE (preamble,      Preamble_txt)
 //
 int main(int argc, char** argv)
 {
+   std::string p1;
+   std::string p2;
+
    // skip program name.
    //
    argc--;
@@ -83,7 +86,7 @@ int main(int argc, char** argv)
       return 1;
    }
 
-   std::string p1 = argv [0];
+   p1 = argv [0];
 
    if (p1 == "-h" || p1 == "--help") {
       version (std::cout);
@@ -109,7 +112,7 @@ int main(int argc, char** argv)
       return 0;
    }
 
-   if (p1 == "-w" || p1 == "--warranty") {
+   if (p1 == "-w" || p1 == "--warrant-y") {
       help_warranty (std::cout);
       return 0;
    }
@@ -119,17 +122,51 @@ int main(int argc, char** argv)
       return 0;
    }
 
-   std::string p2 = "punchout.txt";
+   // Read actual program options and arguments.
+   //
+   // This slows the emulator down to approximatley real-time.
+   // At least on my setup at home.
+   //
+   int sm = 27;   // default;
+
+   if (p1 == "-s" || p1 == "--sleep") {
+      if (argc >= 2) {
+
+         int n = sscanf(argv [1], "%d", &sm);
+         if (n != 1 || sm < 1) {
+            std::cerr << "non integer or non positive sleep option value" << std::endl;
+            return 1;
+         }
+
+         // Skip option and option value
+         //
+         argc -= 2;
+         argv += 2;
+
+      } else {
+         std::cerr << "missing sleep option value" << std::endl;
+         help_usage (std::cerr);
+         return 1;
+      }
+   }
+
+   if (argc < 1) {
+      std::cerr << "missing arguments" << std::endl;
+      help_usage (std::cerr);
+      return 1;
+   }
+   p1 = argv [0];
+
+   p2 = "punchout.txt";
    if (argc >= 2) {
       p2 = argv [1];
    }
-
 
    preamble (std::cout);
    std::cout << std::endl;
 
    version (std::cout);
-   return run ("rom.dat", p1, p2);
+   return run ("rom.dat", p1, p2, sm);
 }
 
 //------------------------------------------------------------------------------

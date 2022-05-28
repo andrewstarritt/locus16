@@ -1,5 +1,7 @@
 /* tape_reader.h
  *
+ * Tape reader module, part of the Locus 16 Emulator.
+ *
  * Copyright (c) 2022  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify

@@ -1,16 +1,14 @@
 // rom.dc1
 //
 // Implements a ROM loader
-// Reader from paper tape device
-// Report to the terminal.
+// Reads from paper tape device
+// Reports to the terminal.
 //
-
-NOOP==XFFFE  // A no-op instruction - force emulator to stop
 
 ALP, =X8000
 BEGIN
 
-   // Entry is on level 1, with no registeres defined,
+   // Entry is on level 1, with no registers defined,
    // except the P reg set to =X8000
    //
    // Force and secondary ALP to enter a wait loop
@@ -111,6 +109,8 @@ END
 
 LOADER:
 BEGIN
+NOOP==XFFFE  // A no-op instruction - force emulator to stop
+
 SOH=1
 STX=2
 ETX=3
@@ -150,7 +150,6 @@ SEEKSTX:
    SETR   ATERMOUT,P
    JS     APUTBYTE,I
    J      SEEKSTX
-
 
 AWELCOME:
    =E WELCOME
@@ -343,7 +342,7 @@ SUCCESS:
 ALP
 END
 
-// Attemps to convert a hexadecimal character '0'..'9' or 'A'..'F'
+// Attempts to convert a hexadecimal character '0'..'9' or 'A'..'F'
 // to equivilent integer value range 0..15.
 // The hex char is in th A reg.
 // The result is i the A reg - returns -1 if not a hex char.
@@ -515,6 +514,142 @@ AOKMASK:
    =E OKMASK
 AOKSTAT:
    =E OKSTAT
+END
+
+
+// Performs an integer division 
+// Input:
+// A Reg is the numerator
+// R Reg is the denominator
+//
+// Result:
+// S Reg is the status 0 okay, 1 error (div by zero or overflow)
+// A Reg is the quotiant, 
+// R Reg is the remainder
+//
+DIVREM:
+BEGIN
+PNUMER=-2   // Positive numerator
+PDENOM=-4   // Positive denominator
+SNUMER=-6   // Signed numerator
+SDENOM=-8   // Signed denominator
+DECR=-10
+INCQ=-12
+TSIZE=14
+
+   STRS   0,T
+   ADDT   TSIZE,L
+   CMPR   0,L
+   JEQ    FAIL     // Can't divide by zero
+   STRA   SNUMER,T
+   STRR   SDENOM,T
+
+   // Determine sign of the numerator and denominator
+   CMPA   0,L
+   JGE    POS1
+   SETA   0,L
+   SUBA   SNUMER,T
+POS1:
+   STRA   PNUMER,T
+
+   CMPR   0,L
+   JGE    POS2
+   SETR   0,L
+   SUBR   SDENOM,T
+POS2:
+   STRR   PDENOM,T
+
+   // numerator < denominator
+   CMPA   PDENOM,T
+   JGE    DIVIDE
+
+   // Easy. Remainder is same sign as numerator
+   SETA   0,L
+   SETR   SNUMER,T
+   J      OKAY
+
+
+   // We need to do an actual division
+   // Divide by repeated subtractions.
+   // We used scaled subraction.
+   // How much can we shift the denominator by?
+   // SHIFTLIMIT is =X8000 >> SHIFT
+SHIFT=2
+SHIFTLIMIT:
+   =E =X2000
+
+DIVIDE:
+   SETA   PDENOM,T
+   SETR   1,L
+TEST:
+   CMPA   SHIFTLIMIT,P
+   JGE    SKIP2
+   SHLA   SHIFT,L
+   SHLR   SHIFT,L
+   J      TEST
+SKIP2:
+   STRA   DECR,T
+   STRR   INCQ,T
+
+START:
+   SETA   0,L       // working quotiant
+   SETR   PNUMER,T  // working remainder
+INNER:
+   CMPR   DECR,T
+   JLT    NOSUB
+   SUBR   DECR,T
+   ADDA   INCQ,T
+   J      INNER
+NOSUB:
+   SETS   INCQ,T
+   CMPS   1,L
+   JEQ    DONE
+   SHRS   SHIFT,L
+   STRS   INCQ,T
+   SETS   DECR,T
+   SHRS   SHIFT,L
+   STRS   DECR,T
+   J      INNER
+
+DONE:
+   // Now sort out signs
+   // 
+   SETS   SNUMER,T
+   JNGA   NEGNUMER
+
+   // Positive numerator - R unchanged
+   SETS   SDENOM,T
+   JPZS   OKAY
+
+   // Negate quotiant A
+   NEQA   XFFFF,P
+   ADDA   1,L
+   J      OKAY
+
+NEGNUMER:
+   // Negate remainder R
+   NEQR   XFFFF,P
+   ADDR   1,L
+
+   // If negative denominator, both negative
+   // and the quotiant is unchaged.
+   SETS   SDENOM,T
+   JNGS   OKAY
+
+   // Negate quotiant A
+   NEQA   XFFFF,P
+   ADDA   1,L
+
+OKAY:
+   SETS   0,L
+   J      EXIT
+FAIL:
+   SETS   1,L
+EXIT:
+   SUBT   TSIZE,L
+   J      0,TI
+XFFFF:
+   =E =XFFFF
 END
 
 ZZZZ:

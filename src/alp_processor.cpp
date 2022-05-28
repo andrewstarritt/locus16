@@ -37,7 +37,7 @@
 #define TREG this->treg [useLevel]
 #define CTRG this->cTrigger[useLevel]
 #define VTRG this->vTrigger[useLevel]
-#define KFLG this->kFlag
+#define KFLG this->kFlag[useLevel]
 
 #define SETP(value) this->preg [useLevel] = value
 #define SETA(value) this->areg [useLevel] = value
@@ -98,12 +98,13 @@ ALP_Processor::ALP_Processor(const int slotIn,       // 1 for primary etc.
 
       this->cTrigger [useLevel] = false;
       this->vTrigger [useLevel] = false;
+      this->kFlag [useLevel] = false;
    }
-
-   this->kFlag = false;
 
    const unsigned int useLevel = 1;
    this->level = useLevel;
+   this->interruptRequested = true;
+
    SETP(0x8000);
 }
 
@@ -195,6 +196,13 @@ void ALP_Processor::setWord(const Int16 addr, const Int16 value)
 
 //------------------------------------------------------------------------------
 //
+void ALP_Processor::requestInterrupt()
+{
+   this->interruptRequested = true;
+}
+
+//------------------------------------------------------------------------------
+//
 bool ALP_Processor::execute()
 {
    // Sanity checks
@@ -209,7 +217,18 @@ bool ALP_Processor::execute()
       return false;
    }
 
-   const int useLevel = this->level;             // Many macros assume useLevel exists
+   // First check for a pending interrupt request.
+   // Only level 0 can get interrupted - it was a design error.
+   // Note: we can't use KFLG until useLevel declared.
+   //
+   if (this->interruptRequested && (this->level == 0) && !this->kFlag[this->level]) {
+      // Switch to level 1.
+      //
+      this->level = 1;
+      this->interruptRequested = false;    // clear the request
+   }
+
+   const int useLevel = this->level;       // Many macros assume useLevel exists.
    const Int16 address = PREG;
    const Int16 instruction = this->dataBus->getWord(address);   // Fetch
 
@@ -221,11 +240,11 @@ bool ALP_Processor::execute()
    const UInt8 lsiByte = instruction & 255;
 
    // We calc a few things even if not all needed
-   // We will worry about efficiency later
+   // We will worry about efficiency later.
    //
    const bool isWord = (lsiByte & 1) == 0;           // as opposed to isByte
    const bool isIndirect = (lsiByte & 1) == 1;
-   const Int16 sign = (msiByte & 1) == 0 ? + 1 :-1;  // offset sign
+   const Int16 sign = (msiByte & 1) == 0 ? +1 : -1;  // offset sign
    const Int16 wordOffset = sign * lsiByte;
    const Int16 byteOffset = sign * (lsiByte >> 1);
    const Int16 jumpOffset = sign * (lsiByte & 0xFE);
@@ -254,6 +273,7 @@ bool ALP_Processor::execute()
 
    // Basic operations
    // Trigger association is kind of speculitive.
+   //
    #define SETX(x, regvalue) {                                                \
       SET##x(regvalue);                                                       \
       const int r = x##REG;                                                   \

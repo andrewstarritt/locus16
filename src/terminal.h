@@ -1,7 +1,7 @@
 /* terminal.h
  *
  * Terminal module, part of the Locus 16 Emulator.
- * Essentiall two serial devices.
+ * Requires two serial devices.
  *
  * Copyright (c) 2022  Andrew C. Starritt
  *

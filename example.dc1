@@ -1,227 +1,263 @@
 // example.dc1
 //
+// A no-op "instruction"
+// The emulator stops on no-op and invalid instructions
+//
+NOOP==XFFFE
+CLOCK==X7C00
 
-ALP
-
-TERMINPUT==X7B10
-TERMOUTPUT==X7B14
-
-STATUSREG=0
-DATAREG=2
-OKMASK==XF000
-OKSTAT==XC000
-
-START:
+ALP, =X9000
+L1ENTRY:
 BEGIN
-NOOP==XFFFE   // no op - force emulator to stop
-   JS     SETLEVEL0
-   SETT   ATSPACE,P
-   JS     MAIN
-   SETL   1
-ATSPACE:
-  =E =X6000
+   SETT   T1SPACE,P
 
-SETLEVEL0:
-   SETR   AX7F02,P
-   STRS   0,R
+   // Set up T0 register
+   SETR   T0REG,P
+   SETA   T0SPACE,P
+   STRA   0,R
+
+   // Set up P0 register
+   SETR   P0REG,P
+   SETA   P0START,P
+   STRA   0,R
+
+   // Set up clock
+   SETR   ACLOCK,P
+   SETA   0,L
+   STRA   0,R       // Ensure stopped
+   SETA   50,L      // mSec
+   STRA   2,R
+   SETA   1,L
+   STRA   0,R       // Start the clock
+RESUMEL0:           // Resume level 0
    SETL   0
-   J      AX8000,I  // re-enter the loader
-AX7F02:
-  =E =X7F02
-AX8000:
-  =E =X8000
+INTERUPT:
+   JS     AINTHANDLER,I   
+   J      RESUMEL0
+
+T1SPACE:
+   =E =X6800
+T0REG:
+   =E =X7F0A
+T0SPACE:
+   =E =X6000
+P0REG:
+   =E =X7F02
+P0START:
+   =E L0ENTRY
+ACLOCK:
+   =E CLOCK
+
+AINTHANDLER:
+   =E  INTHANDLER
 END
 
-// Main program
+// Count 20 interrupts, i.e. 1Sec and set TICKFLAG
 //
-MAIN:
-BEGIN 
-TSIZE=6
-DPTR=-2
-COUNT=-4
-   STRS    0,T        // Save return address
-   ADDT    TSIZE,L
-
-   SETR    ASTARTTEXT,P
-   JS      APUTBYTES,I
-
-   SETA    0,L
-   STRA    COUNT,T
-LOOP:
-   SETA    COUNT,T
-   CMPA    5,L
-   JGE     DONE
-   ADDA    1,L
-   STRA    COUNT,T
-
-   SETA    80,L
-   SETR    ABUFFER,P
-   JS      AGETBYTES,I
-
-   SETR    ABUFFER,P
-   SETA    0,L
-   STRA    80,RB      // belts'n'braces
-   JS      APUTBYTES,I
-
-   J       LOOP
-
-DONE:
-   SETR    AENDTEXT,P
-   JS      APUTBYTES,I
-
-   SUBT    TSIZE,L
-   J       0,TI       // return
-
-ASTARTTEXT:
-   =E STARTTEXT
-AENDTEXT:
-   =E ENDTEXT
-APUTBYTES:
-   =E PUTBYTES
-AGETBYTES:
-   =E GETBYTES
-ABUFFER:
-   =E =X0000          // arbitary
-END
-
-DATA
-STARTTEXT:
-   =C"Data Code 1 Example using the Locus 16 Emulator"
-   =X1D0A    // Trailing CR LF
-   =C"I will copy the next five lines of text"
-   =X1D0A    // Trailing CR LF
-   =X00      // Trailing Zero
-ENDTEXT:
-   =C"Bye...."
-   =X1D0A    // Trailing CR LF
-   =X00      // Trailing Zero
-ALP
-
-// Write string to the output
-// String to write is in R reg
-//
-PUTBYTES:
-BEGIN
-TSIZE=6
-DPTR=-2
-   STRS    0,T        // Save return address
-   ADDT    TSIZE,L
-LOOP:
-   SETA    0,RB
-   CMPA    0,L
-   JEQ     DONE
-   STRR    DPTR,T
-   JS      APUTBYTE,I
-   SETR    DPTR,T
-   ADDR    1,L
-   J       LOOP
-DONE:
-   SUBT    TSIZE,L
-   J       0,TI       // return
-
-APUTBYTE:
-   =E PUTBYTE
-END
-
-
-// Write a single byte to the output
-// Char to write is in the A reg
-//
-PUTBYTE:
-BEGIN
-TSIZE=4
-CHAR=-2
-   STRS    0,T        // Save return address
-   ADDT    TSIZE,L
-   STRA    CHAR,TB
-   SETS    ASERIAL,P
-RETRY:
-   SETA    STATUSREG,S
-   ANDA    AOKMASK,P
-   CMPA    AOKSTAT,P
-   JNE     RETRY
-
-// Now ready to write.
-//
-   SETA    CHAR,TB
-   STRA    DATAREG,S
-
-   SUBT    TSIZE,L
-   J       0,TI       // return
-ASERIAL:
-   =E TERMOUTPUT
-AOKMASK:
-   =E OKMASK
-AOKSTAT:
-   =E OKSTAT
-END
-
-// Read a strin into a buffer
-// Buffer size in the A reg
-// Buffer address in the R reg
-//
-GETBYTES:
-BEGIN
-TSIZE=8
-DPTR=-2
-SIZE=-4
-LAST=-6
-   STRS    0,T        // Save return address
-   ADDT    TSIZE,L
-   STRA    SIZE,T
-   STRR    DPTR,T
-   ADDR    SIZE,T
-   SUBR    1,L        // leave room for the zero
-   STRR    LAST,T
-LOOP:
-   SETR    DPTR,T
-   CMPR    LAST,T
-   JGE     DONE
-   JS      AGETBYTE,I
-   SETR    DPTR,T
-   STRA    0,RB
-   ADDR    1,L
-   STRR    DPTR,T
-   CMPA    =X0A,L     // end of line
-   JNE     LOOP
-DONE:
-   SETA    0,L
-   STRA    0,RB
-   SUBT    TSIZE,L
-   J       0,TI       // return
-AGETBYTE:
-   =E GETBYTE
-END
-
-// Read a sigle byte from the input
-// Char read is in the A reg
-//
-GETBYTE:
+INTHANDLER:
 BEGIN
 TSIZE=2
-   STRS    0,T        // Save return address
-   ADDT    TSIZE,L
-   SETS    ASERIAL,P
-RETRY:
-   SETA    STATUSREG,S
-   ANDA    AOKMASK,P
-   CMPA    AOKSTAT,P
-   JNE     RETRY
+   STRS  0,T
+   ADDT  TSIZE,L
 
-// Now ready to read.
-//
-   SETA    DATAREG,S
-   ANDA    255,L
-   SUBT    TSIZE,L
-   J       0,TI       // return
-ASERIAL:
-   =E TERMINPUT
-AOKMASK:
-   =E OKMASK
-AOKSTAT:
-   =E OKSTAT
+   SETA  COUNTER,P
+   ADDA  1,L
+   CMPA  20,L
+   JLT   SKIP
+   SETR  1,L
+   STRR  TICKFLAG,P
+   SETA  0,L
+SKIP:
+   STRA  COUNTER,P
+   SUBT  TSIZE,L
+   J     0,TI
+COUNTER:
+   =E 0
+END
+
+TICKFLAG:
+   =E 0
+
+L0ENTRY:
+BEGIN
+TSIZE=2
+   ADDT   TSIZE,L
+LOOP:
+   // Busy wait until TICKFLAG set.
+   SETA   TICKFLAG,P
+   CMPA   1,L
+   JNE    LOOP
+
+   // Clear flag
+   SETA   0,L
+   STRA   TICKFLAG,P  
+
+   JS     UPDATE
+
+   SUBT   TSIZE,L
+   J      L0ENTRY
 END
 
 
-// FINISH, FRED;
-// End
+// From rom map
+//
+PUTBYTE==X81E4        // -32284
+PUTBYTES==X81C4       // -32316
+DIVREM==X823E         // -32194
+
+BINTIME:
+  =E 0
+  =E 0
+  =E 0
+
+UPDATE:
+BEGIN
+HRS=0
+MINS=2
+SECS=4
+
+TSIZE=6
+TENS=-4
+UNITS=-2
+
+   STRS  0,T
+   ADDT  TSIZE,L
+   SETR  ABINTIME,P
+
+   // Seconds
+   SETA  SECS,R
+   ADDA  1,L
+   CMPA  60,L
+   JGE   CARRY1
+   STRA  SECS,R
+   J     DONE
+
+CARRY1:
+   SETA  0,L
+   STRA  SECS,R
+
+   // Minutes
+   SETA  MINS,R
+   ADDA  1,L
+   CMPA  60,L
+   JGE   CARRY2
+   STRA  MINS,R
+   J     DONE
+
+CARRY2:
+   SETA  0,L
+   STRA  MINS,R
+
+   // Hours
+   SETA  HRS,R
+   ADDA  1,L
+   CMPA  24,L
+   JLT   NOCARRY
+   SETA  0,L
+NOCARRY:
+   STRA  HRS,R
+
+
+DONE:
+   // Time updated, set update text string
+   // Hours
+   SETS  ABINTIME,P
+   SETA  HRS,S
+   SETR  10,L
+   JS    ADIVREM,I
+   STRA  TENS,T
+   STRR  UNITS,T
+
+   SETS  ANUMBERS,P
+   ADDS  TENS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  HOFFSET,SB
+
+   SETS  ANUMBERS,P
+   ADDS  UNITS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  HOFFSET+1,SB
+
+   // Mins
+   SETS  ABINTIME,P
+   SETA  MINS,S
+   SETR  10,L
+   JS    ADIVREM,I
+   STRA  TENS,T
+   STRR  UNITS,T
+
+   SETS  ANUMBERS,P
+   ADDS  TENS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  MOFFSET,SB
+
+   SETS  ANUMBERS,P
+   ADDS  UNITS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  MOFFSET+1,SB
+
+   // Seconnds
+   SETS  ABINTIME,P
+   SETA  SECS,S
+   SETR  10,L
+   JS    ADIVREM,I
+   STRA  TENS,T
+   STRR  UNITS,T
+
+   SETS  ANUMBERS,P
+   ADDS  TENS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  SOFFSET,SB
+
+   SETS  ANUMBERS,P
+   ADDS  UNITS,T
+   SETA  0,SB
+   SETS  ATHETIME,P
+   STRA  SOFFSET+1,SB
+
+   // Output
+   //
+   SETA  ATHETIME,P
+   SETR  VDUOUT,P
+   JS    APUTBYTES,I
+
+   SUBT  TSIZE,L
+   J     0,TI
+
+ABINTIME:
+   =E BINTIME
+ADIVREM:
+   =E DIVREM
+ATHETIME:
+   =E THETIME
+ANUMBERS:
+   =E NUMBERS
+VDUOUT:
+   =E =X7B14
+APUTBYTES:
+   =E PUTBYTES
+
+DATA
+HOFFSET=12
+MOFFSET=15
+SOFFSET=18
+
+// Naughty - storing in program space ;-)
+//
+THETIME:
+   =C"The time is 00:00:00"
+   =X0D0A00
+NUMBERS:
+   =C"0123456789"
+
+ALP
+END
+
+
+// FINISH, ENTRY;
+

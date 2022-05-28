@@ -22,6 +22,7 @@ RESOPTS += --binary-architecture i386
 # All execute header files
 #
 HEADERS  = alp_processor.h
+HEADERS += clock.h
 HEADERS += data_bus.h
 HEADERS += diagnostics.h
 HEADERS += locus16_common.h
@@ -37,6 +38,7 @@ HEADERS += terminal.h
 #
 OBJECTS  = $(OBJ_DIR)/build_datetime.o
 OBJECTS += $(OBJ_DIR)/alp_processor.o
+OBJECTS += $(OBJ_DIR)/clock.o
 OBJECTS += $(OBJ_DIR)/data_bus.o
 OBJECTS += $(OBJ_DIR)/diagnostics.o
 OBJECTS += $(OBJ_DIR)/execute.o
@@ -84,7 +86,7 @@ $(OBJ_DIR)/%.o : %.cpp  %.h  peripheral.h  locus16_common.h data_bus.h $(SENTINA
 $(OBJ_DIR)/execute.o : execute.cpp execute.h $(HEADERS) $(SENTINAL) Makefile
 	g++ $(CFLAGS) -o $(OBJ_DIR)/execute.o execute.cpp
 
-$(OBJ_DIR)/main.o : build_datetime.h execute.h locus16_common.h $(SENTINAL) Makefile
+$(OBJ_DIR)/main.o :  main.cpp build_datetime.h execute.h locus16_common.h $(SENTINAL) Makefile
 	g++ $(CFLAGS) -o $(OBJ_DIR)/main.o main.cpp
 
 # Resource files

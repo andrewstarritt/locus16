@@ -39,6 +39,7 @@
 
 #include "locus16_common.h"
 #include "alp_processor.h"
+#include "clock.h"
 #include "data_bus.h"
 #include "diagnostics.h"
 #include "memory.h"
@@ -85,7 +86,8 @@ static bool startsWith(const char* text, const char* with,
 //
 int run (const std::string romFile,
          const std::string programFile,
-         const std::string outputFile)
+         const std::string outputFile,
+         const int sleepModulo)
 {
    L16E::DataBus* const dataBus = new L16E::DataBus();
 
@@ -95,6 +97,7 @@ int run (const std::string romFile,
    L16E::MemoryMapper* const mapper = new L16E::MemoryMapper (dataBus);
    L16E::Memory* const memory = new L16E::Memory (74, mapper, dataBus);
    L16E::ROM* const rom = new L16E::ROM (dataBus);
+   L16E::Clock* const clock = new L16E::Clock (dataBus);
    L16E::ALP_Processor* const processor1 = new L16E::ALP_Processor (1, L16E::ALP_Processor::alp1, dataBus);
 // L16E::ALP_Processor* const processor2 = new L16E::ALP_Processor (2, L16E::ALP_Processor::alp1, dataBus);
    L16E::Serial* const vduInputSerial   = new L16E::Serial (L16E::Serial::Input,  0x7B10, dataBus);
@@ -198,41 +201,46 @@ int run (const std::string romFile,
          std::cout << "exiting..." << std::endl;
          break;  // all done
 
-      } else if (startsWith(start, "CU")) {
-         // Continue/run
-         int64_t number = 0;
+      } else if (startsWith(start, "CU") || startsWith(start, "SS")) {
+         // Continue/run/step
+         int64_t number = 1;
 
-         if (first + 2 == last) {
-            number = 0x7FFFffffFFFFffff;  // "infinity"
-         } else {
-            int n;
-            int64_t temp = 0;
-            n = sscanf(start + 2, "%ld", &temp);
-
-            if (n == 1) {
-               number = temp;
+         if (startsWith(start, "CU")) {
+            if (first + 2 == last) {
+               number = 0x7FFFffffFFFFffff;  // "infinity", well actually ~9.2e+18
             } else {
-               std::cout << "Invalid number: " << start << std::endl;
+               int n;
+               int64_t temp = 0;
+               n = sscanf(start + 2, "%ld", &temp);
 
-               /// GOTO end of loop - continue just won't cut the mustard!!!
-               ///
-               goto loopContinue;
+               if (n == 1) {
+                  number = temp;
+               } else {
+                  std::cout << "Invalid number: " << start << std::endl;
+
+                  /// GOTO end of loop - continue just won't cut the mustard!!!
+                  ///
+                  goto loopContinue;
+               }
             }
          }
 
+         /// -------------------------------------------------------------------
          // Round robin all active devices.
          // We did think about a separate thread for each active device, however
          // the use of mutex prob. negates the benefit of multiple threads.
          //
          sigIntReceived = false;
          for (int64_t ic = 0; ic < number; ic++) {
-            // First check for any interrupt.
+            // First check for any user command-line interrupt.
             //
             if (sigIntReceived) {
                sigIntReceived = false;
                break;
             }
 
+            // Select the active device.
+            //
             L16E::DataBus::Device* device = activeDeviceList [activeDevice];
 
             // Let memory mapper controller know who is (or will be)
@@ -241,6 +249,8 @@ int run (const std::string romFile,
             int id = device->getActiveIdentity();
             mapper->setActiveIdentity(id);
 
+            // Check for break points.
+            //
             if ((ic > 0) && (device == processor1)) {
                Int16 next = processor1->getPreg();
                if (diagnostics->isBreakPoint(next)) {
@@ -250,7 +260,22 @@ int run (const std::string romFile,
                }
             }
 
+            if (clock->testAndClearInterruptPending()) {
+               processor1->requestInterrupt();
+            }
+
             bool status = device->execute();
+
+            // This slows the emulator down to approximatley real-time
+            // At least on my setup at home.
+            //
+            if ((ic % sleepModulo) == 0) usleep (1);
+
+            // Let clock know we have executed one instruction.
+            // This add 2.25 uSec to the amount of time that has passed.
+            // (based on on active/ALP process in the crate).
+            //
+            clock->executeCycle ();
 
             // do the round-robin update.
             activeDevice = (activeDevice + 1) % activeCount;
@@ -261,6 +286,8 @@ int run (const std::string romFile,
                break;
             }
          }
+         //
+         /// -------------------------------------------------------------------
 
          processor1->dumpRegisters();
          diagnostics->accessAddress(processor1->getPreg());
@@ -292,6 +319,10 @@ int run (const std::string romFile,
          } else {
             std::cout << "Invalid:" << start << std::endl;
          }
+
+      } else if (startsWith(start, "DR")) {
+         // Dump registers
+         processor1->dumpRegisters();
 
       } else if (startsWith(start, "SB")) {
          // Set break
@@ -327,8 +358,10 @@ int run (const std::string romFile,
          const char* hlp;
          hlp = "EX                   exit\n"
                "CU [number]          continue, optional number of instructions\n"
+               "SS                   step 1 instruction, same as CU 1\n"
                "AA hexaddr [number]  access address, optional number of words\n"
                "DM hexaddr [number]  dump memory, optional number of words\n"
+               "DR                   dump ALP registers for current level\n"
                "SB hexaddr           set break point\n"
                "CB hexaddr           clear break point\n"
                "LB                   list break points\n"

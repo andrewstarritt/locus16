@@ -22,8 +22,6 @@
  */
 
 #include "serial.h"
-#include "terminal.h"
-
 #include <iostream>
 
 using namespace L16E;

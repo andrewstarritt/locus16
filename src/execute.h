@@ -30,6 +30,7 @@
 
 int run (const std::string romFile,
          const std::string programFile,
-         const std::string outputFile);
+         const std::string outputFile,
+         const int sleepModulo);
 
 #endif // L16E_EXECUTE_H

@@ -44,7 +44,10 @@ public:
                           DataBus* const dataBus);
    ~ALP_Processor();
 
+   void requestInterrupt ();
    bool execute();   // fetch and execute one instruction
+
+
 
    unsigned int getLevel() const;
    void dumpRegisters(const unsigned int level) const;
@@ -61,8 +64,7 @@ private:
    const ALPKinds alpKind;
    const unsigned int numberLevels;
 
-   unsigned int level;    // 0 .. 3 ALP1,  0 .. 1  ALP2/3
-
+   unsigned int level;       // 0 .. 3 ALP1,  0 .. 1  ALP2/3
    Int16 preg [4];
    Int16 areg [4];
    Int16 rreg [4];
@@ -70,7 +72,8 @@ private:
    Int16 treg [4];
    bool cTrigger [4];
    bool vTrigger [4];
-   bool kFlag;           // inhibits interrupts
+   bool kFlag [4];           // inhibits interrupts
+   bool interruptRequested;  // indicates an interrupt is pending.
 
    bool debug;
 };

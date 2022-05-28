@@ -1,7 +1,8 @@
-usage:  locus16 [OPTIONS] PROGRAM
+usage:  locus16 [OPTIONS] INPUT [OUTPUT]
         locus16 -h, --help
         locus16 -u, --usage
         locus16 -l, --license
         locus16 -v, --version
         locus16 -w, --warranty
         locus16 -r, --redistribute
+        locus16 -s, --sleep

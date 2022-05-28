@@ -8,7 +8,7 @@ import os
 import pprint
 import sys
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 error_col = "\033[31;1m"
 warn_col = "\033[33;1m"
@@ -57,7 +57,7 @@ reserved_words = ("ALP", "DATA", "BEGIN", "END", "FINISH")
 # Used in various log outputs.
 # Do once here for consistancy
 #
-timenow = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+timenow = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
 
 # -----------------------------------------------------------------------------
