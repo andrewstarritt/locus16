@@ -37,7 +37,7 @@
 //
 #define ARRAY_LENGTH(xx)   (int (sizeof (xx) /sizeof (xx[0])))
 
-#define LOCUS16_VERSION    "0.3.3"
+#define LOCUS16_VERSION    "0.3.4"
 
 typedef unsigned char   UInt8;
 typedef short           Int16;
