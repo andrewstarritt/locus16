@@ -1,5 +1,7 @@
 // example.dc1
 //
+// Note: include rom.map file as preamble source code.
+//
 // A no-op "instruction"
 // The emulator stops on no-op and invalid instructions
 //
@@ -98,12 +100,6 @@ LOOP:
    J      L0ENTRY
 END
 
-
-// From rom map
-//
-PUTBYTE==X81E4        // -32284
-PUTBYTES==X81C4       // -32316
-DIVREM==X823E         // -32194
 
 BINTIME:
   =E 0
@@ -258,6 +254,4 @@ NUMBERS:
 ALP
 END
 
-
 // FINISH, ENTRY;
-

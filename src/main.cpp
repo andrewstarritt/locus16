@@ -127,7 +127,7 @@ int main(int argc, char** argv)
    // This slows the emulator down to approximatley real-time.
    // At least on my setup at home.
    //
-   int sm = 27;   // default;
+   int sm = 26;   // default;
 
    if (p1 == "-s" || p1 == "--sleep") {
       if (argc >= 2) {

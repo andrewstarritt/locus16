@@ -8,7 +8,7 @@ import os
 import pprint
 import sys
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 error_col = "\033[31;1m"
 warn_col = "\033[33;1m"
@@ -368,9 +368,9 @@ def write_phx(file_info, jump_to, target, source):
         crlf = "\r\n"
 
         header = f"""\
-DC1 version: {__version__}{crlf}\
 Source: {source}{crlf}\
-Date: {timenow}{crlf}"""
+Date: {timenow}{crlf}\
+dc1 version: {__version__}{crlf}"""
 
         f.write(soh)
         f.write(header)
@@ -450,9 +450,10 @@ def write_ocb(file_info, jump_to, target, source):
         crlf = "\r\n"
 
         header = f"""\
-DC1 version: {__version__}{crlf}\
 Source: {source}{crlf}\
-Date: {timenow}{crlf}"""
+Date: {timenow}{crlf}\
+dc1 version: {__version__}{crlf}"""
+
 
         f.write(soh)
         f.write(escape(bytes(header, encoding='utf-8')))
@@ -1294,11 +1295,12 @@ context_settings = dict(help_option_names=['--help', '-h'],
 
 @click.command(context_settings=context_settings,
                epilog="""
-\b\bNotes:
+\b\bExample:
 
-\b
-TBD
+dc1  rom.map  example.dc1
 
+This generates output files example.phx, example.log and example.map.
+ 
 """)
 # -----------------------------------------------------------------------------
 #
@@ -1311,9 +1313,10 @@ Select OCB output format in lieu of PHX.
 #
 @click.option('--output', '-o',
               help="""
-Define the prefix for all output files, i.e. the phx (or ocb) file, the log \
-file and the map file. If not specified, the output prefix is based on the \
-first source filename.
+Define the filename prefix for all output files, i.e. the phx (or ocb) file, \
+the log file and the map file. If not specified, the output prefix is based \
+on the first source filename ending with .dc1 if it exists, otherwise it based \
+on the first source filename.
 """)
 # -----------------------------------------------------------------------------
 #
@@ -1328,21 +1331,35 @@ first source filename.
 # -----------------------------------------------------------------------------
 #
 def cli(ocb, output, source):
-    """ Assesmbles a DataCodeOne source file(s) to phx (or ocb)
+    """ Assesmbles one or more DataCodeOne source file(s) to phx or ocb.
     """
     if output is not None:
-        root = output
+        # User has specified the prefix name.
+        #
+        prefix = output
     else:
-        root = source[0]
-        if root.endswith(".dc1"):
-            root = root[0:-4]
+        # prefix name is from the first *.dc1 file if it exists
+        # otherwise is based on the first file.
+        #
+        prefix = None
+        for source_name in source:
+            if source_name.endswith(".dc1"):
+                prefix = source_name[0:-4]
+                break
+
+        if prefix is None:
+            # Just go with first file - check if a map file.
+            #
+            prefix = source[0]
+            if prefix.endswith(".map"):
+                prefix = prefix[0:-4]
 
     if ocb:
-        target = root + ".ocb"
+        target = prefix + ".ocb"
     else:
-        target = root + ".phx"
-    listing = root + ".log"
-    addr_map = root + ".map"
+        target = prefix + ".phx"
+    listing = prefix + ".log"
+    addr_map = prefix + ".map"
 
     assesmble_dc1(source, target, addr_map, listing, ocb=ocb)
 

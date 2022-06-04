@@ -127,21 +127,26 @@ bool Terminal::initialise()
    if (this->xterm_pid == 0) {
       // We are the child.
       //
-      const char* file;
-      char arg0 [20];
+      const char* const file = "xterm";
       char arg1 [20];
-
-      char* argv [4];
-
-      file = "xterm";
-
-      snprintf(arg0, sizeof (arg0), "%s", file);
       snprintf(arg1, sizeof (arg1), "-S%s/%d", (strrchr (ptname, '/') + 1), pt_fd);
 
-      argv[0] = arg0;
+      char* argv [13];
+      // strdup "converts" const char* to char*
+      argv[0] = strdup(file);
       argv[1] = arg1;
-      argv[2] = 0;
-      argv[3] = 0;
+      // black background, white text, larger font and a nice title.
+      argv[2] = strdup("-bg");
+      argv[3] = strdup("black");
+      argv[4] = strdup("-fg");
+      argv[5] = strdup("white");
+      argv[6] = strdup("-fa");
+      argv[7] = strdup("Monospace");
+      argv[8] = strdup("-fs");
+      argv[9] = strdup("10");
+      argv[10] = strdup("-title");
+      argv[11] = strdup("Locus 16 Emulator Terminal");
+      argv[12] = NULL;
 
       DEBUG std::cout << "execvp: " << argv[0] << " " << argv[1] << "\n";
 

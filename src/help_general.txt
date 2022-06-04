@@ -14,7 +14,7 @@ Options:
   -w, --warranty     Show warranty disclaimer and exit.
   -r, --redistrubute Show re-distribution advice and exit.
   -s, --sleep        Specifies the number of instructions executed before a 1 micro-second
-                     sleep by the emulator. The default value is 27 which corresponds to
+                     sleep by the emulator. The default value is 26 which corresponds to
                      the ALP1 processor running approximately real time on my system. 
 
 Environment Variables:

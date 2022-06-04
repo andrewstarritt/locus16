@@ -4,7 +4,6 @@
 // Reads from paper tape device
 // Reports to the terminal.
 //
-
 ALP, =X8000
 BEGIN
 
@@ -90,7 +89,7 @@ MAPDONE:
 AMEMCTL:        // Primary ALP memory controller
    =E =X7B00
 JUMPSELF:
-   J     .
+   J      .
 ATSPACE:        // Use top 128 bytes of RAM - note: not dynamically mapped
    =E =X6F80
 AFIRST:         // inclusive
@@ -458,44 +457,44 @@ END
 //
 GETBYTE:
 BEGIN
+OUTCOUNT=-2
+INRCOUNT=-4
 TSIZE=6
-COUNT=-2
-MSEC=-4
-   STRS    0,T        // Save return address
+   STRS    0,T          // Save return address
    ADDT    TSIZE,L
-   STRA    MSEC,T
+   STRA    OUTCOUNT,T   // Save outer count
 
-   SETA    INNER,P    // Set inner count
-   STRA    COUNT,T
-
-RETRY:
-   SETA    COUNT,T    // Decrement inner count
-   SUBA    1,L
-   STRA    COUNT,T
-   CMPA    1,L        // Count down complete?
-   JGE     CONTINUE
-
-   SETA    INNER,P    // Reset inner
-   STRA    COUNT,T
-
-   SETA    MSEC,T     // Decrement outer count
-   SUBA    1,L
-   STRA    MSEC,T
-   CMPA    1,L        // mSec count down complete?
-   JGE     CONTINUE
-
-   SETS    0,L        // Timeout
-   SUBS    1,L
-   J       EXIT
-
-CONTINUE:
+OUTERLOOP:
+   SETA    INNER,P      // Set inner count
+   STRA    INRCOUNT,T
+INNERLOOP:
+   // Does the device have data ready to be read?
+   //
    SETA    STATUSREG,R
    ANDA    AOKMASK,P
    CMPA    AOKSTAT,P
-   JNE     RETRY
+   JEQ     READDATA
+
+   // Nope
+   SETA    INRCOUNT,T   // Decrement inner count
+   SUBA    1,L
+   STRA    INRCOUNT,T
+   CMPA    1,L          // Count down complete?
+   JGE     INNERLOOP
+
+   SETA    OUTCOUNT,T
+   SUBA    1,L
+   STRA    OUTCOUNT,T
+   CMPA    1,L
+   JGE     OUTERLOOP
+
+// Timeout
+   SETS    TIMEOUT,P 
+   J       EXIT
 
 // Now ready to read.
 //
+READDATA:
    SETA    DATAREG,R
    ANDA    255,L      // Isolate byte
    SETS    0,L
@@ -504,16 +503,18 @@ EXIT:
    SUBT    TSIZE,L
    J       0,TI       // return
 
-// A mSec is approx 444 Locus instructions which is approx 35520
-// emulated instructions (the speed factor of about 80), which is
-// 3640 times round the inner loop.
+// A mSec is approx 444 Locus instructions.
+// There are 9 instructions in the inner loop, so 50 times around
+// the loop is 450 instructions.
 //
 INNER:
-   =E 3640
+   =E 50
 AOKMASK:
    =E OKMASK
 AOKSTAT:
    =E OKSTAT
+TIMEOUT:
+   =E -1
 END
 
 
@@ -569,11 +570,10 @@ POS2:
    J      OKAY
 
 
-   // We need to do an actual division
-   // Divide by repeated subtractions.
-   // We used scaled subraction.
-   // How much can we shift the denominator by?
+   // We need to do an actual division. The divide is by
+   // repeated subtractions. We used scaled subtraction.
    // SHIFTLIMIT is =X8000 >> SHIFT
+   // SHIFT can be between 1 and 15. Think 2 is about optimum
 SHIFT=2
 SHIFTLIMIT:
    =E =X2000
@@ -581,12 +581,14 @@ SHIFTLIMIT:
 DIVIDE:
    SETA   PDENOM,T
    SETR   1,L
-TEST:
+   // How much can we shift the denominator by?
+   //
+SHFTEST:
    CMPA   SHIFTLIMIT,P
    JGE    SKIP2
    SHLA   SHIFT,L
    SHLR   SHIFT,L
-   J      TEST
+   J      SHFTEST
 SKIP2:
    STRA   DECR,T
    STRR   INCQ,T
@@ -652,6 +654,12 @@ XFFFF:
    =E =XFFFF
 END
 
-ZZZZ:
+// Dummy subroutine.
+//
+DUMMYSUB:
+   J      0,S
+
+
+ZZZZZZ:
 
 // end
