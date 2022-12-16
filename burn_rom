@@ -1,28 +1,151 @@
-#!/bin/bash
-#
-# Crates a rom file from some PHX.
-# Currently uses ace and format which are not generally available.
+#!/usr/bin/env python
 #
 
-phx_file=rom.phx
-rom_file=rom.dat
+import click
+import functools
+import os
+import sys
+import traceback
 
-dc1 rom.dc1 || exit 1
+# Add a little colour
+#
+red = b'\x1b[31;1m'.decode(encoding='utf8')
+green = b'\x1b[32;1m'.decode(encoding='utf8')
+yellow = b'\x1b[33;1m'.decode(encoding='utf8')
+reset = b'\x1b[00m'.decode(encoding='utf8')
 
-echo "Buring ${phx_file:?} to ${rom_file:?}"
 
-temp=/tmp/${USER}_burm_rom_$$
+# print to standard error.
+#
+errput = functools.partial(print, file=sys.stderr)
 
-ace ${phx_file:?}  ${temp:?} <<HERE > /dev/null
-u*/T8000/s// f/J9000/ b k* b m-
-(i/C102/16b) 128
-%C
-HERE
 
-format -c htob ${temp:?} | head -c 4096 > ${rom_file:?}
-echo "Done"
+# -----------------------------------------------------------------------------
+#
+def burn(source, target, filename):
+    """
+    """
+    soh = "\x01"
+    stx = "\x02"
+    etx = "\x03"
+    cr = "\x0d"
+    lf = "\x0a"
 
-ls -l  ${rom_file:?}
-rm -f ${temp:?}
+    phx = source.read()
+
+    p1 = phx.find(soh)
+    if p1 == -1:
+        raise ValueError(f"{filename}: Missing SOH")
+
+    p2 = phx.find(stx, p1)
+    if p2 == -1:
+        raise ValueError(f"{filename}: Missing STX")
+
+    p3 = phx.find('T8000', p2)
+    if p3 == -1:
+        raise ValueError(f"{filename}: Missing T8000 directive")
+
+    p4 = phx.find('J9000', p3)
+    if p4 == -1:
+        raise ValueError(f"{filename}: Missing J9000 directive")
+
+    p5 = phx.find(etx, p4)
+    if p5 == -1:
+        raise ValueError(f"{filename}: Missing ETX")
+
+    # The useful PHX is in phx[p3+5:p4]
+    #
+    output = bytearray()
+
+    count = 0
+    byte = 0
+    for x in phx[p3 + 5:p4]:
+        if x in (cr, lf):
+            pass
+
+        elif x in "0123456789ABCDEF":
+            if x in "0123456789":
+                v = ord(x) - ord("0")
+            else:
+                v = ord(x) - ord("A") + 10
+
+            byte = (byte << 4) + v
+            count += 1
+
+            if count % 2 == 0:
+                output.append(byte)
+                byte = 0
+
+        else:
+            raise ValueError(f"{filename}: non PHX character '{x}'")
+
+    if count % 2 == 1:
+        raise ValueError(f"{filename}: odd number of PHX characters")
+
+    if len(output) >= 4096:
+        raise ValueError(f"{filename}: size {len(output)} exceeds 4096")
+
+    # Pad odd byte with 0
+    #
+    if len(output) % 2 == 1:
+        output.append(0x00)
+        count += 1
+
+    # Pad remaining words with C102, i.e.  J .+0
+    #
+    while len(output) < 4096:
+        output.append(0xC1)
+        output.append(0x02)
+
+    target.write(output)
+
+
+# -----------------------------------------------------------------------------
+#
+context_settings = dict(help_option_names=['--help', '-h'],
+                        terminal_width=108,
+                        max_content_width=112)
+
+
+@click.command(context_settings=context_settings,
+               epilog="""
+\b
+
+""")
+@click.argument('phx_file', nargs=1, required=True)
+@click.argument('rom_file', nargs=1, required=True)
+def cli(phx_file, rom_file):
+    """ Uses the specified PHX_FILE to "burn" the specified ROM_FILE.
+        The PHX file must start loading at 8000 and nominally
+        jump to 9000.
+    """
+    try:
+        with open(phx_file, 'r') as source:
+            with open(rom_file, 'wb') as target:
+                burn(source, target, phx_file)
+        print(f"{rom_file} burn complete")
+
+    except Exception as e:
+        en = e.__class__.__name__
+        errput(f"{red}{en}{reset}: {e}")
+        errput(traceback.format_exc(limit=-2))
+        os._exit(1)
+
+
+# -----------------------------------------------------------------------------
+# Set env variables for click and python 3 (does no harm for python 2)
+# Command line entry point for setup
+#
+def call_cli():
+    """ cli wrapper to setup click friendly envrionment variables.
+        Would also be the console scripts entry point if this ever became a package.
+    """
+    os.environ['LANG'] = 'en_US.utf8'
+    os.environ['LC_ALL'] = 'en_US.utf8'
+    cli()
+
+
+if __name__ == '__main__':
+    call_cli()
 
 # end

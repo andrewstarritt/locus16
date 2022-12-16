@@ -35,9 +35,9 @@ using namespace L16E;
 
 //------------------------------------------------------------------------------
 //
-TapeReader::TapeReader(const char* filenameIn) :
+TapeReader::TapeReader(const std::string filenameIn) :
    Peripheral("Tape Reader"),
-   filename (strndup(filenameIn, 256))
+   filename (filenameIn)
 {
    this->fd = -1;
 }
@@ -54,9 +54,20 @@ TapeReader::~TapeReader()
 
 //------------------------------------------------------------------------------
 //
+void TapeReader::setFilename (const std::string filenameIn)
+{
+   if (this->fd >= 0) {
+      close(this->fd);
+      this->fd = -1;
+   }
+   this->filename = filenameIn;
+}
+
+//------------------------------------------------------------------------------
+//
 bool TapeReader::initialise()
 {
-   this->fd = open(this->filename, O_RDONLY);
+   this->fd = open(this->filename.c_str(), O_RDONLY);
 
    if (this->fd >= 0) {
       // Successfully opened file - set non-blocking.
@@ -66,7 +77,7 @@ bool TapeReader::initialise()
       flags |= O_NONBLOCK;
       flags = fcntl (this->fd, F_SETFL, flags);
    } else {
-      this->perrorf("TapeReader::initialise (%s)", this->filename);
+      this->perrorf("TapeReader::initialise (%s)", this->filename.c_str());
    }
 
    return (this->fd >= 0);

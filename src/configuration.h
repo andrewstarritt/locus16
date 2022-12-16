@@ -1,6 +1,6 @@
-/* tape_punch.h
+/* configuration.h
  *
- * Tape punch module, part of the Locus 16 Emulator.
+ * Configuration, part of the Locus 16 Emulator.
  *
  * Copyright (c) 2022  Andrew C. Starritt
  *
@@ -23,30 +23,25 @@
  * PO Box 3118, Prahran East, Victoria 3181, Australia.
  */
 
-#ifndef L16E_TAPE_PUNCH_H
-#define L16E_TAPE_PUNCH_H
+#ifndef L16E_CONFIGURATION_H
+#define L16E_CONFIGURATION_H
 
-#include "locus16_common.h"
-#include "peripheral.h"
 #include <string>
+#include "data_bus.h"
 
 namespace L16E {
 
-class TapePunch : public Peripheral
-{
+class Configuration {
 public:
-   explicit TapePunch(const std::string filename);
-   ~TapePunch();
-
-   void setFilename (const std::string filename);
-   bool initialise();
-   bool writeByte (const UInt8 value);
-
+   // Reads configuration data and creates the specified peripherals and devices.
+   //
+   static bool readConfiguration (const std::string iniFile,
+                                  DataBus* dataBus);
 private:
-   std::string filename;
-   int fd;
+   explicit Configuration ();
+   ~Configuration ();
 };
 
 }
 
-#endif // L16E_TAPE_PUNCH_H
+#endif // L16E_CONFIGURATION_H

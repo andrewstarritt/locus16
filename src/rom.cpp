@@ -37,8 +37,10 @@
 
 using namespace L16E;
 
-ROM::ROM (DataBus* const dataBus) :
+ROM::ROM (const std::string romFileIn,
+          DataBus* const dataBus) :
    DataBus::Device (dataBus, ROM_FIRST, ROM_LAST, "ROM", false),
+   romFile (romFileIn),
    romPtr (reinterpret_cast <UInt8*> (malloc (NUMBER_BYTES)))
 {
    // We consider addresses go from -32768 to -28672
@@ -61,26 +63,28 @@ ROM::~ROM() { }
 
 //------------------------------------------------------------------------------
 //
-void ROM::initialise(const char* romFile)
+bool ROM::initialise()
 {
    char message [80];
-   int fd = open (romFile, O_RDONLY);
+   int fd = open (this->romFile.c_str(), O_RDONLY);
 
    if (fd < 0) {
-      snprintf(message, sizeof (message), "ROM open %s", romFile);
+      snprintf(message, sizeof (message), "ROM open %s", this->romFile.c_str());
       perror(message);
-      return;
+      return false;
    }
 
    ssize_t size = read (fd, this->romPtr, NUMBER_BYTES);
    if (size <= 0) {
-      snprintf(message, sizeof (message), "ROM read %s", romFile);
+      snprintf(message, sizeof (message), "ROM read %s", this->romFile.c_str());
       perror(message);
    }
 
-   printf("ROM %ld bytes loaded from %s\n", size, romFile);
+   printf("ROM %ld bytes loaded from %s\n", size, this->romFile.c_str());
 
    close (fd);
+
+   return true;
 }
 
 //------------------------------------------------------------------------------

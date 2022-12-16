@@ -28,20 +28,22 @@
 
 #include "locus16_common.h"
 #include "peripheral.h"
+#include <string>
 
 namespace L16E {
 
 class TapeReader : public Peripheral
 {
 public:
-   explicit TapeReader(const char* filename);
+   explicit TapeReader(const std::string filename);
    ~TapeReader();
 
+   void setFilename (const std::string filename);
    bool initialise();
    bool readByte(UInt8& value);
 
 private:
-   const char* const filename;
+   std::string filename;
    int fd;
 };
 

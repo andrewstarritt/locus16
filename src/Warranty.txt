@@ -1,4 +1,7 @@
-  Disclaimer of Warranty and Limitation of Liability.
+The Locus16 Emulator and support items are distributed under the
+GNU General Public License version 3.
+
+Disclaimer of Warranty and Limitation of Liability.
 
   THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
 APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT

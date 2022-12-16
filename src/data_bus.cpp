@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+#include <iomanip>
 
 using namespace L16E;
 
@@ -50,7 +51,7 @@ DataBus::Device::Device(DataBus* const dataBusIn,
    } else {
       this->activeIdentity = -1;
    }
-   dataBus->registerDevice(this);
+   this->isRegistered = dataBus->registerDevice(this);
 }
 
 DataBus::Device::~Device() {}
@@ -98,12 +99,27 @@ int  DataBus::Device::getActiveIdentity() const
 }
 
 //------------------------------------------------------------------------------
+//
+bool DataBus::Device::getIsRegistered() const
+{
+   return this->isRegistered;
+}
+
+//------------------------------------------------------------------------------
 // Overlays two bytes onto a 16 bit word.
 //
 union Data {
    Int16 word;
    UInt8 bytes [2];
 };
+
+//------------------------------------------------------------------------------
+//
+bool DataBus::Device::initialise ()
+{
+   // Nothing do do here yet
+   return true;
+}
 
 //------------------------------------------------------------------------------
 // Default device byte addressing based on word addressing
@@ -132,13 +148,37 @@ void DataBus::Device::setByte(const Int16 addr, const UInt8 value)
 
 //------------------------------------------------------------------------------
 //
-bool DataBus::Device::execute()
+std::string DataBus::Device::addrRange () const
 {
-   if (this->isActive) {
-      std::cerr << "Program Error: Active device does not override fetchExecute" << std::endl;
-   } else {
-      std::cerr << "Program Error: fetchExecute invoked for non active device" << std::endl;
-   }
+   char buffer [20];
+   snprintf(buffer, sizeof (buffer), "0x%04X..0x%04X",
+            this->addrLow & 0xFFFF, this->addrHigh & 0xFFFF);
+   return std::string (buffer);
+}
+
+
+//==============================================================================
+// DataBus::Device
+//==============================================================================
+//
+DataBus::ActiveDevice::ActiveDevice(DataBus* const dataBus,
+                                    const Int16 addrLow,    // inclusive
+                                    const Int16 addrHigh,   // exclusive
+                                    const char* name) :
+   DataBus::Device (dataBus, addrLow, addrHigh, name, true)
+{ }
+
+//------------------------------------------------------------------------------
+//
+DataBus::ActiveDevice::~ActiveDevice() { }
+
+
+//------------------------------------------------------------------------------
+//
+bool DataBus::ActiveDevice::execute()
+{
+   std::cerr << "Program Error: Active device does not override execute() method."
+             << std::endl;
    return false;
 }
 
@@ -189,7 +229,27 @@ DataBus::~DataBus() {}
 //
 bool DataBus::registerDevice(Device* device)
 {
-   if (this->count >= maximumNumberOfDevices) return false;
+   if (!device) return false;
+
+   if (this->count >= maximumNumberOfDevices) {
+      std::cerr << "*** too many devices" << std::endl;
+      return false;
+   }
+
+   // Check for address overlaps.
+   //
+   for (int d = 0; d < this->count; d++) {
+      Device* other = this->crate [d];
+      if ((device->addrHigh > other->addrLow) &&
+          (device->addrLow < other->addrHigh)) {
+         // overlap
+         std::cerr << "*** " << device->name << " " << device->addrRange()
+                   << " overlaps "
+                   << other->name << " " << other->addrRange() << std::endl;
+         return false;
+      }
+   }
+
    this->crate[this->count] = device;
    this->count++;
    return true;
@@ -248,41 +308,67 @@ void DataBus::setWord(const Int16 addr, const Int16 value)
 
 //------------------------------------------------------------------------------
 //
+bool DataBus::initialiseDevices ()
+{
+   bool result = true;   // hypothesize all okay
+
+   for (int d = 0; d < this->count; d++) {
+      Device* device = this->crate [d];
+      result &= device->initialise();
+   }
+
+   return result;
+}
+
+//------------------------------------------------------------------------------
+//
 void DataBus::listDevices() const
 {
    std::cout << "Available devices" << std::endl;
    for (int d = 0; d < this->count; d++) {
       Device* device = this->crate [d];
-
-      char buffer [80];
-
-      snprintf(buffer, sizeof (buffer),
-               "%2d %-20s 0x%04X  0x%04X %s", d+1, device->name,
-               device->addrLow & 0xFFFF,
-               device->addrHigh & 0xFFFF,
-               device->isActive ? "*" : "");
-
-      std::cout << buffer << std::endl;
+      std::cout << std::right << std::setw(2) << d+1 << " "
+                << std::left << std::setw(20) << device->name<< " "
+                << device->addrRange()
+                << (device->getIsActive() ? " *" : "") << std::endl;
    }
    std::cout << std::endl;
 }
 
 //------------------------------------------------------------------------------
 //
-int DataBus::getActiveDevices (Device* deviceList[], const int maxNumber) const
+int DataBus::getActiveDevices (ActiveDevice* deviceList[], const int maxNumber) const
 {
    int number = 0;
    if (!deviceList) return 0;  // sanity check
 
    for (int d = 0; (d < this->count) && (number < maxNumber); d++) {
-      Device* device = this->crate [d];
-      if (device->getIsActive()) {
+      ActiveDevice* device = dynamic_cast <ActiveDevice*> (this->crate [d]);
+      if (device) {
          deviceList [number] = device;
          number++;
       }
    }
 
    return number;
+}
+
+//------------------------------------------------------------------------------
+//
+int DataBus::deviceCount() const
+{
+   return this->count;
+}
+
+//------------------------------------------------------------------------------
+//
+DataBus::Device* DataBus::getDevice (const int index) const
+{
+   Device* device = nullptr;
+   if ((index >= 0) && (index < this->count)) {
+      device = this->crate [index];
+   }
+   return device;
 }
 
 // end

@@ -35,9 +35,9 @@ using namespace L16E;
 
 //------------------------------------------------------------------------------
 //
-TapePunch::TapePunch(const char* filenameIn) :
+TapePunch::TapePunch (const std::string filenameIn) :
    Peripheral("Tape Punch"),
-   filename (strndup(filenameIn, 256))
+   filename (filenameIn)
 {
    this->fd = -1;
 }
@@ -54,9 +54,20 @@ TapePunch::~TapePunch()
 
 //------------------------------------------------------------------------------
 //
+void TapePunch::setFilename (const std::string filenameIn)
+{
+   if (this->fd >= 0) {
+      close(this->fd);
+      this->fd = -1;
+   }
+   this->filename = filenameIn;
+}
+
+//------------------------------------------------------------------------------
+//
 bool TapePunch::initialise()
 {
-   this->fd = creat(this->filename, 0644);
+   this->fd = creat(this->filename.c_str(), 0644);
 
    if (this->fd >= 0) {
       // Successfully created/opened file - set non-blocking.
@@ -66,7 +77,7 @@ bool TapePunch::initialise()
       flags |= O_NONBLOCK;
       flags = fcntl (this->fd, F_SETFL, flags);
    } else {
-      this->perrorf("TapePunch::initialise (%s)", this->filename);
+      this->perrorf("TapePunch::initialise (%s)", this->filename.c_str());
    }
 
    return (this->fd >= 0);

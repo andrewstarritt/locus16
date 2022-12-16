@@ -34,27 +34,38 @@ Clock::Clock (DataBus* const dataBus) :
    this->interval = 0;
    this->countDown = 0.0;
    this->interruptPending = false;
+   this->numberActiveDevices = 1;
 }
 
 //------------------------------------------------------------------------------
 //
-Clock::~Clock()  { }   // place holder
+Clock::~Clock() { }   // place holder
 
 //------------------------------------------------------------------------------
 //
 void Clock::executeCycle()
 {
    if (this->isRunning) {
-      // a typlical ALP instruction is 2.25 uSec
+      // A typlical ALP instruction is 2.25 uSec
       // If more than one active device, we should adjust this.
+      // Note: it is far from linear, due to bus contention
       //
-      this->countDown -= 2.25;
+      double duration = (3.0 * 2.25) / (this->numberActiveDevices + 2.0);
+      this->countDown -= duration;
       if (this->countDown <= 0.0) {
          this->interruptPending = true;
-         this->countDown += 1000.0 * this->interval;  // reset count down.
+         // reset count down (convert interval from mS to uS).
+         this->countDown += 1000.0 * this->interval;
          if (this->countDown < 10) this->countDown = 10;
       }
    }
+}
+
+//------------------------------------------------------------------------------
+//
+void Clock::setNumberActiveDevices(const int n)
+{
+   this->numberActiveDevices = MAX(1, n);
 }
 
 //------------------------------------------------------------------------------
@@ -90,8 +101,10 @@ void Clock::setWord(const Int16 addr, const Int16 value)
    if (addr == 0x7C00) {
       this->isRunning = value & 1;
    } else if (addr == 0x7C02) {
+      // Ensure we treat as unsigned when we detrmine the interval.
+      //
       this->interval = (value >= 0) ? value : value + 0x010000;
-      this->countDown = 1000.0 * this->interval;  // reset count down.
+      this->countDown = 1000.0 * this->interval;  // reset count down (mS => uS)
       if (this->countDown < 10) this->countDown = 10;
    }
 }

@@ -78,8 +78,8 @@ static char* nameOf (const L16E::ALP_Processor::ALPKinds akind,
 ALP_Processor::ALP_Processor(const int slotIn,       // 1 for primary etc.
                              const ALPKinds alpKindIn,
                              DataBus* const dataBus) :
-   DataBus::Device (dataBus, ADDR_LOW(slotIn), ADDR_HIGH(slotIn),
-                    nameOf (alpKindIn, slotIn), true),
+   DataBus::ActiveDevice (dataBus, ADDR_LOW(slotIn), ADDR_HIGH(slotIn),
+                          nameOf (alpKindIn, slotIn)),
    slot (slotIn),
    alpKind (alpKindIn),
    numberLevels (alpKindIn == alp1 ? 4 : 2)

@@ -33,10 +33,13 @@ char* Diagnostics::hex (const Int16 x)
    // All a bit nasty, but it gets the job done.
    //
    static int r = 0;
-   static char buffer [8][6];
-   r = (r+1)%8;
 
-   snprintf (buffer[r], 6, "%04X", x & 0xFFFF);
+#define NUMBER 20
+   static char buffer [NUMBER][6];
+   r = (r+1)%NUMBER;
+#undef NUMBER
+
+   snprintf (buffer[r], sizeof (buffer[r]), "%04X", x & 0xFFFF);
    return buffer[r];
 }
 

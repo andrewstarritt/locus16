@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <cinttypes>
 #include <unistd.h>
-#include <INIReader.h>
 
 #include "execute.h"
 #include "build_datetime.h"
@@ -166,72 +165,7 @@ int main(int argc, char** argv)
    std::cout << std::endl;
 
    version (std::cout);
-   return run ("rom.dat", p1, p2, sm);
-}
-
-//------------------------------------------------------------------------------
-//
-int mainz () {
-   INIReader* c = new INIReader("locus16.ini");
-
-   int error = c->ParseError();
-   if (error != 0) {
-      printf ("parse error %d\n", error);
-      return 2;
-   }
-
-   int number;
-   number = c->GetInteger("Crate", "NumberSlots", -1);
-   if (number < 1) {
-      std::cout << "No slots specified" << "\n";
-      return 1;
-   }
-   std::cout << "Number slots: " << number << "\n";
-
-   for (int slot = 1; slot <= number; slot++) {
-      char sectionText [20];
-
-      snprintf(sectionText, sizeof(sectionText), "Slot%d", slot);
-
-      const std::string kind = c->GetString(sectionText, "Kind", "None");
-      std::cout << "slot: " << slot << "  kind: " << kind << "\n";
-
-      if (kind == "ALP1") {
-         const int p = c->GetInteger(sectionText, "Processor", -1);
-         std::cout << "  processor no.: " << p << "\n";
-
-         if (p < 1 || p > 2) {
-            std::cerr << "  invalid processor number\n";
-            error = MAX (4, error);
-         }
-
-      } else if (kind == "MemoryController") {
-         // pass
-
-      } else if (kind == "RAM") {
-         // pass
-
-      } else if (kind == "ROM") {
-         // pass
-
-      } else if (kind == "Terminal") {
-         // pass
-
-      } else if (kind == "None") {
-         std::cout << "  warning - empty slot\n";
-         error = MAX (1, error);
-
-      } else {
-         std::cerr << " unknown kind\n";
-         error = MAX (4, error);
-      }
-   }
-
-   if (error) {
-      return error;
-   }
-
-   return 0;
+   return run ("locus16.ini", p1, p2, sm);
 }
 
 // end

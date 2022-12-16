@@ -45,6 +45,7 @@ public:
    explicit Clock (DataBus* const dataBus);
    virtual ~Clock();
 
+   void setNumberActiveDevices(const int n);
    bool testAndClearInterruptPending ();
 
    Int16 getWord(const Int16 addr) const;
@@ -53,6 +54,7 @@ public:
    void executeCycle();   // called prior to each instruction execution
 
 private:
+   int numberActiveDevices;
    bool isRunning;
    Int16 interval;      // in emulated mSec
    double countDown;    // in emulated uSec

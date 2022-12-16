@@ -23,6 +23,7 @@ RESOPTS += --binary-architecture i386
 #
 HEADERS  = alp_processor.h
 HEADERS += clock.h
+HEADERS += configuration.h
 HEADERS += data_bus.h
 HEADERS += diagnostics.h
 HEADERS += locus16_common.h
@@ -39,6 +40,7 @@ HEADERS += terminal.h
 OBJECTS  = $(OBJ_DIR)/build_datetime.o
 OBJECTS += $(OBJ_DIR)/alp_processor.o
 OBJECTS += $(OBJ_DIR)/clock.o
+OBJECTS += $(OBJ_DIR)/configuration.o
 OBJECTS += $(OBJ_DIR)/data_bus.o
 OBJECTS += $(OBJ_DIR)/diagnostics.o
 OBJECTS += $(OBJ_DIR)/execute.o

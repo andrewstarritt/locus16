@@ -88,10 +88,7 @@ public:
                     DataBus* const dataBus);
    virtual ~Memory();
 
-   // Initialise all memory to the specified value.
-   //
-   void initialise(const Int16 value);
-
+   bool initialise ();
    UInt8 getByte(const Int16 addr) const;
    void setByte(const Int16 addr, const UInt8 value);
 

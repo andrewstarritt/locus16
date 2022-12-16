@@ -28,12 +28,12 @@ BEGIN
    SETA   0,L
    STRA   0,R       // Ensure stopped
    SETA   50,L      // mSec
-   STRA   2,R
+   STRA   2,R       // Set the interrupt time interval
    SETA   1,L
    STRA   0,R       // Start the clock
 RESUMEL0:           // Resume level 0
    SETL   0
-INTERUPT:
+INTERRUPT:
    JS     AINTHANDLER,I   
    J      RESUMEL0
 
@@ -54,7 +54,7 @@ AINTHANDLER:
    =E  INTHANDLER
 END
 
-// Count 20 interrupts, i.e. 1Sec and set TICKFLAG
+// Count 20 interrupts, i.e. 1 Sec and set TICKFLAG
 //
 INTHANDLER:
 BEGIN
@@ -100,7 +100,8 @@ LOOP:
    J      L0ENTRY
 END
 
-
+// Binary time: hours, minutes and seconds.
+//
 BINTIME:
   =E 0
   =E 0

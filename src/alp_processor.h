@@ -31,7 +31,7 @@
 
 namespace L16E {
 
-class ALP_Processor : public DataBus::Device
+class ALP_Processor : public DataBus::ActiveDevice
 {
 public:
    enum ALPKinds {
@@ -46,8 +46,6 @@ public:
 
    void requestInterrupt ();
    bool execute();   // fetch and execute one instruction
-
-
 
    unsigned int getLevel() const;
    void dumpRegisters(const unsigned int level) const;

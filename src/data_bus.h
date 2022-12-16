@@ -27,9 +27,12 @@
 #define L16E_DATA_BUS_H
 
 #include "locus16_common.h"
+#include <string>
 
 namespace L16E {
 
+/// Essentally the system.
+///
 class DataBus {
 public:
    enum Constants {
@@ -60,6 +63,7 @@ public:
       const char* getName() const;
       bool getIsActive() const;
       int getActiveIdentity() const;  // return -1 for non-active devices
+      bool getIsRegistered() const;
 
       // Concrete devices must specify these functions.
       //
@@ -68,12 +72,11 @@ public:
 
       // Concrete devices may override these functions.
       //
+      virtual bool initialise ();
       virtual UInt8 getByte(const Int16 addr) const;
       virtual void setByte(const Int16 addr, const UInt8 value);
 
-      // Must be overriden by active devices such the the ALP processor.
-      //
-      virtual bool execute();
+      std::string addrRange () const;
 
    protected:
       DataBus* const dataBus;  // the pointer/reference is constant, not the object
@@ -82,8 +85,25 @@ public:
       const char* const name;
       const bool isActive;
       int activeIdentity;
+      bool isRegistered;
 
       friend class DataBus;
+   };
+
+
+   // Any active device (such as ALP, DMA, PPI) should inherit from this class.
+   //
+   class ActiveDevice : public Device {
+   public:
+      explicit ActiveDevice(DataBus* const dataBus,
+                            const Int16 addrLowIn,    // inclusive
+                            const Int16 addrHighIn,   // exclusive
+                            const char* name);
+      virtual ~ActiveDevice();
+
+      // Must be overriden by active devices such the the ALP processor.
+      //
+      virtual bool execute();
    };
 
    explicit DataBus();
@@ -95,8 +115,13 @@ public:
    Int16 getWord(const Int16 addr) const;
    void setWord(const Int16 addr, const Int16 value);
 
+   bool initialiseDevices ();
    void listDevices() const;  // prints to stdout
-   int getActiveDevices (Device* deviceList[], const int maxNumber) const;
+
+   int getActiveDevices (ActiveDevice* deviceList[], const int maxNumber) const;
+
+   int deviceCount() const;
+   Device* getDevice (const int index) const;
 
 private:
    bool registerDevice(Device* device);

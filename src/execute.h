@@ -28,7 +28,7 @@
 
 #include <string>
 
-int run (const std::string romFile,
+int run (const std::string iniFile,
          const std::string programFile,
          const std::string outputFile,
          const int sleepModulo);

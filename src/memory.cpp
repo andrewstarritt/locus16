@@ -171,14 +171,15 @@ Memory::~Memory()
 
 //------------------------------------------------------------------------------
 //
-void Memory::initialise (const Int16 value)
+bool Memory::initialise ()
 {
-   const Int16 swapedValue = __builtin_bswap16 (value);
    const int numberWords = totalSize/2;
 
    for (int paddr = 0; paddr < numberWords; paddr++) {
-      this->wordPtr [paddr] = swapedValue;
+      this->wordPtr [paddr] = 0;
    }
+
+   return true;
 }
 
 //------------------------------------------------------------------------------

@@ -1331,7 +1331,7 @@ on the first source filename.
 # -----------------------------------------------------------------------------
 #
 def cli(ocb, output, source):
-    """ Assesmbles one or more DataCodeOne source file(s) to phx or ocb.
+    """ Assembles one or more DataCodeOne source file(s) to phx or ocb.
     """
     if output is not None:
         # User has specified the prefix name.

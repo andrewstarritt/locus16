@@ -40,6 +40,7 @@
 #include "locus16_common.h"
 #include "alp_processor.h"
 #include "clock.h"
+#include "configuration.h"
 #include "data_bus.h"
 #include "diagnostics.h"
 #include "memory.h"
@@ -72,54 +73,71 @@ static void signalCatcher (int sig)
 
 //------------------------------------------------------------------------------
 //
-static bool startsWith(const char* text, const char* with,
-                       const bool useCase = false)
+static bool startsWith(const char* text, const char* with)
 {
    if (!text || !with) return false;
    int n = strnlen(with, 256);
-   int c = useCase ? strncmp(text, with, n) : strncasecmp(text, with, n);
-
+   int c = strncasecmp(text, with, n);
    return c == 0;
 }
 
 //------------------------------------------------------------------------------
 //
-int run (const std::string romFile,
+template<class PeripheralType>
+static PeripheralType* findPeripheral ()
+{
+   const int n = L16E::Peripheral::peripheralCount();
+   for (int p = 0; p < n; p++) {
+      PeripheralType* peripheral = dynamic_cast <PeripheralType*> (L16E::Peripheral::getPeripheral(p));
+      if (peripheral) {
+         // Found it (or the first at least)
+         return peripheral;
+      }
+   }
+   return nullptr;
+}
+
+//------------------------------------------------------------------------------
+//
+template<class DeviceType>
+static DeviceType* findDevice (L16E::DataBus* const dataBus, int ordinal = 1)
+{
+   const int n = dataBus->deviceCount();
+   for (int d = 0; d < n; d++) {
+      DeviceType* device = dynamic_cast <DeviceType*> (dataBus->getDevice(d));
+      if (device) {
+         // Found it the required class
+         if (ordinal == 1) {
+            // Found it the required instance
+            return device;
+         }
+         ordinal--;
+      }
+   }
+   return nullptr;
+}
+
+//------------------------------------------------------------------------------
+//
+int run (const std::string iniFile,
          const std::string programFile,
          const std::string outputFile,
          const int sleepModulo)
 {
+   bool status;
    L16E::DataBus* const dataBus = new L16E::DataBus();
-
-   // Create Devices
-   // For actived devices (e.g. ALPs), the order defines the active identity.
-   //
-   L16E::MemoryMapper* const mapper = new L16E::MemoryMapper (dataBus);
-   L16E::Memory* const memory = new L16E::Memory (74, mapper, dataBus);
-   L16E::ROM* const rom = new L16E::ROM (dataBus);
-   L16E::Clock* const clock = new L16E::Clock (dataBus);
-   L16E::ALP_Processor* const processor1 = new L16E::ALP_Processor (1, L16E::ALP_Processor::alp1, dataBus);
-// L16E::ALP_Processor* const processor2 = new L16E::ALP_Processor (2, L16E::ALP_Processor::alp1, dataBus);
-   L16E::Serial* const vduInputSerial   = new L16E::Serial (L16E::Serial::Input,  0x7B10, dataBus);
-   L16E::Serial* const vduOutputSerial  = new L16E::Serial (L16E::Serial::Output, 0x7B14, dataBus);
-   L16E::Serial* const tapeReaderSerial = new L16E::Serial (L16E::Serial::Input,  0x7B18, dataBus);
-   L16E::Serial* const tapePunchSerial  = new L16E::Serial (L16E::Serial::Input,  0x7B1C, dataBus);
-
-   // Non-devices that are also "on the" data bus.
-   //
    L16E::Diagnostics* const diagnostics = new L16E::Diagnostics (dataBus);
 
-   // Create Peripherals
-   //
-   L16E::Terminal* const terminal = new L16E::Terminal ();
-   L16E::TapeReader* const tapeReader = new L16E::TapeReader (programFile.c_str());
-   L16E::TapePunch* const tapePunch = new L16E::TapePunch (outputFile.c_str());
+   status = L16E::Configuration::readConfiguration(iniFile, dataBus);
+   if (!status) return 4;
 
-   L16E::DataBus::Device* activeDeviceList [L16E::DataBus::maximumNumberOfDevices];
-
-   // List all available devices.
+   // List all available peripherals and devices.
+   // Bah!! This is a bit asymetric.
    //
+   L16E::Peripheral::listPeripherals();
    dataBus->listDevices();
+
+   L16E::DataBus::ActiveDevice* activeDeviceList [L16E::DataBus::maximumNumberOfDevices];
 
    // Get a list of all the active devices, e.g. ALP processors, DMA devices etc.
    //
@@ -133,26 +151,39 @@ int run (const std::string romFile,
    }
    std::cout << std::endl;
 
-   // Initialise devices and peripherals.
+   // Load program file "tape" into the tape reader.
    //
-   rom->initialise(romFile.c_str());
-   memory->initialise(0);
-   terminal->initialise();
-   tapeReader->initialise();
-   tapePunch->initialise();
+   L16E::TapeReader* reader = findPeripheral<L16E::TapeReader>();
+   if (reader) {
+      reader->setFilename (programFile);
+   }
 
-   // Connect devices to the peripherals
+   L16E::TapePunch* punch  = findPeripheral<L16E::TapePunch>();
+   if (punch) {
+      punch->setFilename (outputFile);
+   }
+
+   // Initialise peripherals and devices.
    //
-   vduInputSerial->connect(terminal);
-   vduOutputSerial->connect(terminal);
-   tapeReaderSerial->connect(tapeReader);
-   tapePunchSerial->connect(tapePunch);
+   status = L16E::Peripheral::initialisePeripherals();
+   if (!status) return 4;
+   status = dataBus->initialiseDevices();
+   if (!status) return 4;
 
-   signal (SIGINT,  signalCatcher);
+   L16E::ALP_Processor* processor1 = findDevice <L16E::ALP_Processor> (dataBus, 1);
+   L16E::ALP_Processor* processor2 = findDevice <L16E::ALP_Processor> (dataBus, 2);
+   L16E::MemoryMapper* mapper = findDevice <L16E::MemoryMapper> (dataBus);
+   L16E::Clock* clock = findDevice <L16E::Clock> (dataBus);;
+
+   // Catch interrupts to allow the emulator to escape program execution and
+   // enter into diagnostic mode.
+   //
+   signal (SIGINT, signalCatcher);
 
    std::cout << std::endl;
 
-   processor1->dumpRegisters();
+   if (processor1) processor1->dumpRegisters();
+   if (processor2) processor2->dumpRegisters();
 
    char* lastLine = nullptr;
    char* thisLine = nullptr;
@@ -227,7 +258,7 @@ int run (const std::string romFile,
 
          /// -------------------------------------------------------------------
          // Round robin all active devices.
-         // We did think about a separate thread for each active device, however
+         // I did think about a separate thread for each active device, however
          // the use of mutex prob. negates the benefit of multiple threads.
          //
          sigIntReceived = false;
@@ -239,20 +270,22 @@ int run (const std::string romFile,
                break;
             }
 
-            // Select the active device.
+            // Do the round-robin update and select the active device.
             //
-            L16E::DataBus::Device* device = activeDeviceList [activeDevice];
+            activeDevice = (activeDevice + 1) % activeCount;
+            L16E::DataBus::ActiveDevice* device = activeDeviceList [activeDevice];
+            L16E::ALP_Processor* processor = dynamic_cast <L16E::ALP_Processor*> (device);
 
             // Let memory mapper controller know who is (or will be)
             // trying to access memory.
             //
             int id = device->getActiveIdentity();
-            mapper->setActiveIdentity(id);
+            if (mapper) mapper->setActiveIdentity(id);
 
             // Check for break points.
             //
-            if ((ic > 0) && (device == processor1)) {
-               Int16 next = processor1->getPreg();
+            if ((ic > 0) && processor) {
+               Int16 next = processor->getPreg();
                if (diagnostics->isBreakPoint(next)) {
                   // At a break point
                   std::cout << "break point " << device->getName() << std::endl;
@@ -260,8 +293,10 @@ int run (const std::string romFile,
                }
             }
 
-            if (clock->testAndClearInterruptPending()) {
-               processor1->requestInterrupt();
+            // Only primary ALP gets interrupted by the clock.
+            //
+            if (clock && clock->testAndClearInterruptPending()) {
+               if (processor1) processor1->requestInterrupt();
             }
 
             bool status = device->execute();
@@ -272,25 +307,29 @@ int run (const std::string romFile,
             if ((ic % sleepModulo) == 0) usleep (1);
 
             // Let clock know we have executed one instruction.
-            // This add 2.25 uSec to the amount of time that has passed.
-            // (based on on active/ALP process in the crate).
+            // This adds 2.25 or 1.68 uSec to the amount of time that has passed.
+            // (based on the number of active/ALP process in the crate).
             //
-            clock->executeCycle ();
-
-            // do the round-robin update.
-            activeDevice = (activeDevice + 1) % activeCount;
+            if (clock) clock->executeCycle ();
 
             if (!status) {
                // The device reports the error.
-               diagnostics->accessAddress(processor1->getPreg() - 2);
+               if (processor) diagnostics->accessAddress(processor->getPreg() - 2);
                break;
             }
          }
          //
          /// -------------------------------------------------------------------
 
-         processor1->dumpRegisters();
-         diagnostics->accessAddress(processor1->getPreg());
+         if (processor1) {
+            processor1->dumpRegisters();
+            diagnostics->accessAddress(processor1->getPreg());
+         }
+
+         if (processor2) {
+            processor2->dumpRegisters();
+            diagnostics->accessAddress(processor2->getPreg());
+         }
 
       } else if (startsWith(start, "AA")) {
          // Access address
@@ -303,7 +342,7 @@ int run (const std::string romFile,
          if (n >= 1) {
             diagnostics->accessAddress(addr, addr + 2*words);
          } else {
-            std::cout << "Invalid:" << start << std::endl;
+            std::cout << "Invalid: " << start << std::endl;
          }
 
       } else if (startsWith(start, "DM")) {
@@ -317,12 +356,38 @@ int run (const std::string romFile,
          if (n >= 1) {
             diagnostics->wideDump(addr, addr + 2*words);
          } else {
-            std::cout << "Invalid:" << start << std::endl;
+            std::cout << "Invalid: " << start << std::endl;
+         }
+
+      } else if (startsWith(start, "SC")) {
+         // Set "core" memory
+         int n;
+         int base = 0;
+         int v [20];
+
+         n = sscanf(start + 2, "%x"
+                    " %x %x %x %x %x %x %x %x"
+                    " %x %x %x %x %x %x %x %x"
+                    " %x %x %x %x",
+                    &base,
+                    &v[0],  &v[1],  &v[2],  &v[3],  &v[4],  &v[5],  &v[6],  &v[7],
+                    &v[8],  &v[9],  &v[10], &v[11], &v[12], &v[13], &v[14], &v[15],
+                    &v[16], &v[17], &v[18], &v[19]);
+
+         if (n >= 1) {
+            for (int j = 0; j < n - 1; j++) {
+               Int16 addr = base + 2*j;
+               dataBus->setWord(addr, v[j]);
+               diagnostics->accessAddress(addr);
+            }
+         } else {
+            std::cout << "Invalid: " << start << std::endl;
          }
 
       } else if (startsWith(start, "DR")) {
          // Dump registers
-         processor1->dumpRegisters();
+         if (processor1) processor1->dumpRegisters();
+         if (processor2) processor2->dumpRegisters();
 
       } else if (startsWith(start, "SB")) {
          // Set break
@@ -361,6 +426,7 @@ int run (const std::string romFile,
                "SS                   step 1 instruction, same as CU 1\n"
                "AA hexaddr [number]  access address, optional number of words\n"
                "DM hexaddr [number]  dump memory, optional number of words\n"
+               "SC hexaddr hexvalues set upto 16 values from the specified start address\n"
                "DR                   dump ALP registers for current level\n"
                "SB hexaddr           set break point\n"
                "CB hexaddr           clear break point\n"
@@ -374,7 +440,7 @@ int run (const std::string romFile,
          std::cout << "Invalid command: " << start << std::endl;
       }
 
-   loopContinue:
+   loopContinue:   // yes - it's a goto - get over it !!
       if (lastLine) free (lastLine);
       lastLine = thisLine;
       thisLine = nullptr;
