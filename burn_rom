@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 #
 
+"""
+
+"""
+
 import click
 import functools
 import os
@@ -33,6 +37,8 @@ def burn(source, target, filename):
 
     phx = source.read()
 
+    # Certain items must exist in the PHX for this to be considered valid.
+    #
     p1 = phx.find(soh)
     if p1 == -1:
         raise ValueError(f"{filename}: Missing SOH")
@@ -53,13 +59,25 @@ def burn(source, target, filename):
     if p5 == -1:
         raise ValueError(f"{filename}: Missing ETX")
 
-    # The useful PHX is in phx[p3+5:p4]
-    #
     output = bytearray()
 
-    count = 0
+    # Fill rom with C102, i.e.  J .+0
+    #
+    while len(output) < 4096:
+        output.append(0xC1)
+        output.append(0x02)
+
+    nibble = 0
     byte = 0
-    for x in phx[p3 + 5:p4]:
+    addr = 0     # relative to start
+
+    # The useful PHX is in phx[p3+5:p4]
+    #
+    index = p3 + 5
+    while index < p4:
+        x = phx[index]
+        index += 1
+
         if x in (cr, lf):
             pass
 
@@ -70,32 +88,42 @@ def burn(source, target, filename):
                 v = ord(x) - ord("A") + 10
 
             byte = (byte << 4) + v
-            count += 1
+            nibble += 1
 
-            if count % 2 == 0:
-                output.append(byte)
+            if nibble == 2:
+                if addr < 0 or addr >= len(output):
+                    load_addr = addr + 0x8000
+                    raise ValueError(f"{filename}: load address 0x{load_addr:04X} exceeds 0x9000")
+                
+                output[addr] = byte
+                addr += 1
+                nibble = 0
                 byte = 0
+
+        elif x == "T":
+            if nibble != 0:
+                raise ValueError(f"{filename}: T directive between hex pair")
+            t_directive = 0
+            for _ in range(4):
+                x = phx[index]
+                index += 1
+                if x in "0123456789":
+                    v = ord(x) - ord("0")
+                elif x in "ABCDEF":
+                    v = ord(x) - ord("A") + 10
+                else:
+                    raise ValueError(f"{filename}: T directive - non hex char '{x}'")
+
+                t_directive = (t_directive << 4) + v
+
+            addr = t_directive - 0x8000
+#           print (f"{index} T directive 0x{t_directive:04X}  {addr}")
 
         else:
             raise ValueError(f"{filename}: non PHX character '{x}'")
 
-    if count % 2 == 1:
+    if nibble > 0:
         raise ValueError(f"{filename}: odd number of PHX characters")
-
-    if len(output) >= 4096:
-        raise ValueError(f"{filename}: size {len(output)} exceeds 4096")
-
-    # Pad odd byte with 0
-    #
-    if len(output) % 2 == 1:
-        output.append(0x00)
-        count += 1
-
-    # Pad remaining words with C102, i.e.  J .+0
-    #
-    while len(output) < 4096:
-        output.append(0xC1)
-        output.append(0x02)
 
     target.write(output)
 

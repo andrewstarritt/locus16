@@ -4,7 +4,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
+ * Copyright (c) 2021-2023  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -386,8 +386,22 @@ int run (const std::string iniFile,
 
       } else if (startsWith(start, "DR")) {
          // Dump registers
-         if (processor1) processor1->dumpRegisters();
-         if (processor2) processor2->dumpRegisters();
+         //
+         int n;
+         int level;
+
+         n = sscanf(start + 2, "%d", &level);
+         if (n >= 1) {
+            if (level < 0 || level >= 4) {
+               std::cout << "Invalid: level " << level << std::endl;
+            } else {
+               if (processor1) processor1->dumpRegisters(level);
+               if (processor2) processor2->dumpRegisters(level);
+            }
+         } else {
+            if (processor1) processor1->dumpRegisters();
+            if (processor2) processor2->dumpRegisters();
+         }
 
       } else if (startsWith(start, "SB")) {
          // Set break
@@ -427,7 +441,7 @@ int run (const std::string iniFile,
                "AA hexaddr [number]  access address, optional number of words\n"
                "DM hexaddr [number]  dump memory, optional number of words\n"
                "SC hexaddr hexvalues set upto 16 values from the specified start address\n"
-               "DR                   dump ALP registers for current level\n"
+               "DR [level]           dump ALP registers for current or specified level\n"
                "SB hexaddr           set break point\n"
                "CB hexaddr           clear break point\n"
                "LB                   list break points\n"

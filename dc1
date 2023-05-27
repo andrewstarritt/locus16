@@ -8,7 +8,7 @@ import os
 import pprint
 import sys
 
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 
 error_col = "\033[31;1m"
 warn_col = "\033[33;1m"
@@ -51,7 +51,6 @@ Status = enum.Enum("Status", ("okay", "warning", "error"))
 
 Modes = enum.Enum("Modes", ("alp", "data"))
 
-
 reserved_words = ("ALP", "DATA", "BEGIN", "END", "FINISH")
 
 # Used in various log outputs.
@@ -81,6 +80,8 @@ def parse(text, separator, *, drop_empty):
 def is_valid_name(item):
     """ Valid names and labels start with a letter, followed by upto 11 alpha 
         numeric characters and upper case. Cannot be a reserved word.
+        I think the original DataCode1 had 6 or 8  character significance.
+        Extended DataCode1 had 12, and that is what I am going with here.
     """
 
     if not isinstance(item, str):
@@ -89,8 +90,6 @@ def is_valid_name(item):
     if item in reserved_words:
         return False
 
-    # Max DC1 name length was 6 or 8 ??  Extended DataDoceOne was 12??
-    #
     if len(item) < 1 or len(item) > 12:
         return False
 
@@ -111,7 +110,6 @@ def is_valid_name(item):
 def is_symbol_definition(text):
     """ Looking for ABCD = expression, however must avoid
         =expression   as in =E stuff
-        ALP =X9000    a valid alp directive
         SETA  =X41,L  a valid instruction
 
         While it does not check the validity of the name in general,
@@ -1236,6 +1234,7 @@ def assesmble_dc1(source, target, addr_map, listing, ocb=False):
         f.write("\n")
 
     # end log output
+    print(f"Listing file: {listing}")
 
 #   print()
 #   print(pp.pformat (file_info))
@@ -1266,6 +1265,7 @@ def assesmble_dc1(source, target, addr_map, listing, ocb=False):
                 gap = " "*(14 - len(name))
                 f.write("%s==X%s%s // %s\n" % (name, value_to_hex(value), gap, value))
             f.write("\n")
+            f.write("// end\n")
 
     else:
         print("Assembly failed")

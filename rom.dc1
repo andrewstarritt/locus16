@@ -330,7 +330,7 @@ D500:
 
 DATA
 WELCOME:
-   =C"Locus 16 ROM Loader..."
+   =C"Locus 16 Emulator ROM Loader..."
    =X0D0A00
 FAILURE:
    =C"Load failure"

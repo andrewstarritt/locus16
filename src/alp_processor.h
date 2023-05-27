@@ -2,7 +2,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
+ * Copyright (c) 2021-2023  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -36,7 +36,7 @@ class ALP_Processor : public DataBus::ActiveDevice
 public:
    enum ALPKinds {
       alp1,
-      alp2
+      alp2       // not implemented yet
    };
 
    explicit ALP_Processor(const int slot,           // 1 for primary etc.

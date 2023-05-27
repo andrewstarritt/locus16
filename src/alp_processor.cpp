@@ -243,7 +243,7 @@ bool ALP_Processor::execute()
    // We will worry about efficiency later.
    //
    const bool isWord = (lsiByte & 1) == 0;           // as opposed to isByte
-   const bool isIndirect = (lsiByte & 1) == 1;
+   const bool isIndirect = (lsiByte & 1) == 1;       // as opposed to direct
    const Int16 sign = (msiByte & 1) == 0 ? +1 : -1;  // offset sign
    const Int16 wordOffset = sign * lsiByte;
    const Int16 byteOffset = sign * (lsiByte >> 1);
@@ -320,6 +320,7 @@ bool ALP_Processor::execute()
 
 
    #define SETX_Y(x,y)  SETX(x, ACCESS(y))
+   #define SETT_Y(  y)  SETT(   ACCESS(y))
    #define ADDX_Y(x,y)  ADDX(x, ACCESS(y))
    #define SUBX_Y(x,y)  SUBX(x, ACCESS(y))
    #define CMPX_Y(x,y)  CMPX(x, ACCESS(y))
@@ -364,7 +365,7 @@ bool ALP_Processor::execute()
    //
    switch (msiByte) {
 
-      // SET/LOAD
+      // SET i.e. LOAD
       //
       case 0x00:
       case 0x01:
@@ -428,22 +429,22 @@ bool ALP_Processor::execute()
 
       case 0x18:
       case 0x19:
-         SETX_Y(T, P);
+         SETT_Y(P);
          break;
 
       case 0x1A:
       case 0x1B:
-         SETX_Y(T, R);
+         SETT_Y(R);
          break;
 
       case 0x1C:
       case 0x1D:
-         SETX_Y(T, S);
+         SETT_Y(S);
          break;
 
       case 0x1E:
       case 0x1F:
-         SETX_Y(T, T);
+         SETT_Y(T);
          break;
 
       // STR
@@ -1059,7 +1060,8 @@ bool ALP_Processor::execute()
       // case 0xF7 - see below
 
       case 0xF8:
-         SETX(T, lsiByte);
+         // For T we go direct - no trigger setting
+         SETT(lsiByte);
          break;
 
       case 0xF9:
