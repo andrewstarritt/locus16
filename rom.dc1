@@ -13,20 +13,21 @@ BEGIN
    // Force and secondary ALP to enter a wait loop
    // Either ALP can/does execute this code.
    //
-   SETS   APROC2P1,P
-   SETA   AWAIT,P
-   STRA   0,S
+   SETR   APRIMARYP1,P
+   SETA   AINITMEM,P
+   STRA   0,R
 
-   J      INITMEM
-
-// Address of secondary ALP P1 register.
-//
-APROC2P1:
-   =E =X7E12
-AWAIT:
-   =E WAIT
+   // All but the primart ALP will stop here
+   //
 WAIT:
    J      WAIT
+
+// Address of primary ALP P1 register.
+//
+APRIMARYP1:
+   =E =X7F12
+AINITMEM:
+   =E INITMEM
 END
 
 
@@ -90,7 +91,7 @@ AMEMCTL:        // Primary ALP memory controller
    =E =X7B00
 JUMPSELF:
    J      .
-ATSPACE:        // Use top 128 bytes of RAM - note: not dynamically mapped
+ATSPACE:        // Use top 128 bytes of RAM - note: not dynamically mapped??
    =E =X6F80
 AFIRST:         // inclusive
    =E =X9000
@@ -343,8 +344,8 @@ END
 
 // Attempts to convert a hexadecimal character '0'..'9' or 'A'..'F'
 // to equivilent integer value range 0..15.
-// The hex char is in th A reg.
-// The result is i the A reg - returns -1 if not a hex char.
+// The hex char is in the A reg.
+// The result is in the A reg - returns -1 if not a hex char.
 // 
 HEXTOVAL:
 BEGIN
@@ -530,8 +531,8 @@ END
 //
 DIVREM:
 BEGIN
-PNUMER=-2   // Positive numerator
-PDENOM=-4   // Positive denominator
+PNUMER=-2   // Absolute numerator
+PDENOM=-4   // Absolute denominator
 SNUMER=-6   // Signed numerator
 SDENOM=-8   // Signed denominator
 DECR=-10
@@ -573,7 +574,7 @@ POS2:
    // We need to do an actual division. The divide is by
    // repeated subtractions. We used scaled subtraction.
    // SHIFTLIMIT is =X8000 >> SHIFT
-   // SHIFT can be between 1 and 15. Think 2 is about optimum
+   // SHIFT can be between 1 and 15. I think 2 is about optimum
 SHIFT=2
 SHIFTLIMIT:
    =E =X2000
