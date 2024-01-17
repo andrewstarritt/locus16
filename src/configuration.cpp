@@ -24,6 +24,10 @@
  */
 
 #include "configuration.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <iostream>
 #include <INIReader.h>
 #include "locus16_common.h"
@@ -58,6 +62,15 @@ bool Configuration::readConfiguration (const std::string iniFile,
    char sectionText [20];
    char hex [20];
 
+   // First check file exists and is readable - this provides better error reports.
+   //
+   int fd = open(iniFile.c_str(), O_RDONLY);
+   if (fd < 0) {
+      perror(iniFile.c_str());
+      return false;
+   }
+   close(fd);
+
    INIReader* c = new INIReader(iniFile);
 
    int error = c->ParseError();
@@ -68,7 +81,7 @@ bool Configuration::readConfiguration (const std::string iniFile,
 
    const int numberDevices = c->GetInteger("System", "NumberDevices", -1);
    if (numberDevices < 1) {
-      std::cerr << "No devices specified" << "\n";
+      std::cerr << iniFile << ": no devices specified" << "\n";
       return false;
    }
    const int numberPeripherals = c->GetInteger("System", "NumberPeripherals", 0);
@@ -106,7 +119,7 @@ bool Configuration::readConfiguration (const std::string iniFile,
          peripherals [p] = new L16E::TapePunch (defaultName);
 
       } else {
-         std::cerr << "  unknown peripheral kind\n";
+         std::cerr  << iniFile << ": unknown peripheral kind\n";
          status = false;
       }
    }
@@ -203,12 +216,12 @@ bool Configuration::readConfiguration (const std::string iniFile,
                serial->connect(peripherals [peripheral]);
 
             } else {
-               std::cerr << " unknown serial device type\n";
+               std::cerr << iniFile << ": unknown serial device type\n";
                status = false;
             }
 
          } else {
-            std::cout << "  no/invalid peripheral specified" << "\n";
+            std::cout << iniFile << ": no/invalid peripheral specified" << "\n";
             status = false;
          }
 
@@ -216,7 +229,7 @@ bool Configuration::readConfiguration (const std::string iniFile,
           // pass
 
       } else {
-         std::cerr << "  unknown device kind\n";
+         std::cerr << iniFile << ": unknown device kind\n";
          status = false;
       }
    }

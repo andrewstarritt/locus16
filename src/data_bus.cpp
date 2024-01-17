@@ -2,7 +2,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
+ * Copyright (c) 2021-2024  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -196,7 +196,7 @@ public:
    UInt8 getByte(const Int16) const { return 0xFF; }
    void setByte(const Int16, const UInt8) { }
 
-   Int16 getWord(const Int16) const { return 0xFFFF; }
+   Int16 getWord(const Int16) const { return DataBus::allOnes; }
    void setWord(const Int16, const Int16) { }
 };
 

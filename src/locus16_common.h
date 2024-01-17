@@ -2,7 +2,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2022-2023  Andrew C. Starritt
+ * Copyright (c) 2022-2024  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -37,7 +37,7 @@
 //
 #define ARRAY_LENGTH(xx)   (int (sizeof (xx) /sizeof (xx[0])))
 
-#define LOCUS16_VERSION    "0.4.2"
+#define LOCUS16_VERSION    "0.4.3"
 
 typedef unsigned char   UInt8;
 typedef short           Int16;

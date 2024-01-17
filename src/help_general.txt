@@ -5,7 +5,8 @@ Arguments:
             (with no parity checks enforced). OCB format not available yet.
 
   OUTPUT    The name of the file attached to the tape punch peripheral device.
-            If not specified, the filename "punchout.txt" is used by default.
+            If not specified, the filename specified in the locus16.ini TapePunch 
+            peripheral is used by default.
 
 Options:
   -h, --help         Show this help message and exit.
@@ -17,5 +18,11 @@ Options:
                      sleep by the emulator. The default value is 26 which corresponds to
                      the ALP1 processor running approximately real time on my system. 
 
+Adaptation Parameter Files:
+  locus16.ini  - the emulator expects to find this file in the current working directory.
+                 It specifies the available devices (processors, memeory, clock etc.) and 
+                 peripherals (tape punch, tape reader, terminal).
+
 Environment Variables:
   None
+

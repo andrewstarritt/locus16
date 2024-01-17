@@ -2,7 +2,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
+ * Copyright (c) 2021-2024  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -105,7 +105,7 @@ ALP_Processor::ALP_Processor(const int slotIn,       // 1 for primary etc.
    this->level = useLevel;
    this->interruptRequested = true;
 
-   SETP(0x8000);
+   SETP(DataBus::addressFirst);    // =X8000
 }
 
 //------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ Int16  ALP_Processor::getPreg() const
 Int16 ALP_Processor::getWord(const Int16 addr) const
 {
    const unsigned int useLevel = (addr >> 4) & 0x000F;
-   if (useLevel >= this->numberLevels) return 0xFFFF;
+   if (useLevel >= this->numberLevels) return DataBus::allOnes;
    const unsigned int reg = addr & 0x000F;
    switch (reg) {
       case 0x02: return PREG; break;
@@ -173,7 +173,7 @@ Int16 ALP_Processor::getWord(const Int16 addr) const
       case 0x06: return RREG; break;
       case 0x08: return SREG; break;
       case 0x0A: return TREG; break;
-      default: return 0xFFFF; break;
+      default:   return DataBus::allOnes; break;
    }
 }
 

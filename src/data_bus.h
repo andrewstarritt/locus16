@@ -2,7 +2,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
+ * Copyright (c) 2021-2024  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -39,7 +39,28 @@ public:
       // Addresses, a, are  first <= a <= last
       //
       addressFirst = (-32768),    // 0x8000
-      addressLast =  (+32767),    // 0x7FFF
+      addressLast  = (+32767),    // 0x7FFF
+      allOnes      = (-1),        // 0xFFFF
+
+      // Some usefull addresses
+      //
+      X8000    = -32768,
+      X9000    = -28672,
+      XA000    = -24576,
+      XB000    = -20480,
+      XC000    = -16384,
+      XD000    = -12288,
+      XE000    = -8192,
+      XF000    = -4096,
+      X0000    = 0,
+      X1000    = 4096,
+      X2000    = 8192,
+      X3000    = 12288,
+      X4000    = 16384,
+      X5000    = 20480,
+      X6000    = 24576,
+      X7000    = 28672,
+
       maximumNumberOfDevices = 20
    };
 

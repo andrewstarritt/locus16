@@ -4,7 +4,7 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2023  Andrew C. Starritt
+ * Copyright (c) 2021-2024  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
@@ -334,12 +334,13 @@ int run (const std::string iniFile,
       } else if (startsWith(start, "AA")) {
          // Access address
          int n;
-         int addr = 0;
+         unsigned uaddr = 0;
          int words = 1;
 
-         n = sscanf(start + 2, "%x %d", &addr, &words);
+         n = sscanf(start + 2, "%x %d", &uaddr, &words);
 
          if (n >= 1) {
+            const Int16 addr = Int16 (uaddr);
             diagnostics->accessAddress(addr, addr + 2*words);
          } else {
             std::cout << "Invalid: " << start << std::endl;
@@ -348,12 +349,13 @@ int run (const std::string iniFile,
       } else if (startsWith(start, "DM")) {
          // Dump memory
          int n;
-         int addr = 0;
+         unsigned uaddr = 0;
          int words = 1;
 
-         n = sscanf(start + 2, "%x %d", &addr, &words);
+         n = sscanf(start + 2, "%x %d", &uaddr, &words);
 
          if (n >= 1) {
+            const Int16 addr = Int16 (uaddr);
             diagnostics->wideDump(addr, addr + 2*words);
          } else {
             std::cout << "Invalid: " << start << std::endl;
@@ -362,8 +364,8 @@ int run (const std::string iniFile,
       } else if (startsWith(start, "SC")) {
          // Set "core" memory
          int n;
-         int base = 0;
-         int v [20];
+         unsigned base = 0;
+         unsigned v [20];
 
          n = sscanf(start + 2, "%x"
                     " %x %x %x %x %x %x %x %x"
@@ -376,8 +378,8 @@ int run (const std::string iniFile,
 
          if (n >= 1) {
             for (int j = 0; j < n - 1; j++) {
-               Int16 addr = base + 2*j;
-               dataBus->setWord(addr, v[j]);
+               const Int16 addr = Int16(base) + 2*j;
+               dataBus->setWord(addr, Int16(v[j]));
                diagnostics->accessAddress(addr);
             }
          } else {
@@ -406,11 +408,12 @@ int run (const std::string iniFile,
       } else if (startsWith(start, "SB")) {
          // Set break
          int n;
-         int addr = 0;
+         unsigned uaddr = 0;
 
-         n = sscanf(start + 2, "%x", &addr);
+         n = sscanf(start + 2, "%x", &uaddr);
          if (n == 1) {
             // Set break point.
+            const Int16 addr = Int16 (uaddr);
             diagnostics->setBreak (addr);
          } else {
             std::cout << "Invalid:" << start << std::endl;
@@ -419,10 +422,11 @@ int run (const std::string iniFile,
       } else if (startsWith(start, "CB")) {
          // Clear break
          int n;
-         int addr = 0;
+         unsigned uaddr = 0;
 
-         n = sscanf(start + 2, "%x", &addr);
+         n = sscanf(start + 2, "%x", &uaddr);
          if (n == 1) {
+            const Int16 addr = Int16 (uaddr);
             diagnostics->clearBreak (addr);
          } else {
             std::cout << "Invalid:" << start << std::endl;

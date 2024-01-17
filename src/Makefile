@@ -10,7 +10,7 @@ OBJ_DIR  = $(TOP)/obj
 
 # Options
 #
-CFLAGS += -Wall -std=gnu++11 -pipe -c -D_REENTRANT  -O3 -I.
+CFLAGS += -Wall -Werror -Wpedantic -std=gnu++11 -pipe -c -D_REENTRANT  -O3 -I.
 LOPTS  += -l readline
 LOPTS  += -l ncurses
 LOPTS  += -l INIReader
@@ -73,7 +73,8 @@ $(TARGET) : $(OBJECTS)  Makefile
 
 build_datetime.cpp: always
 	@echo "updating build_datetime.cpp"
-	@echo '#include "build_datetime.h"'  > build_datetime.cpp
+	@echo '// This file is auto generated'                                           >  build_datetime.cpp
+	@echo '#include "build_datetime.h"'                                              >> build_datetime.cpp
 	@date -u '+std::string build_datetime () { return "%a %d %b %Y %H:%M:%S %Z"; }'  >> build_datetime.cpp
 
 $(OBJ_DIR)/build_datetime.o : $(SENTINAL) build_datetime.cpp build_datetime.h Makefile

@@ -2,7 +2,7 @@
  *
  * Locus 16 Emulator serial module, part of the Locus 16 Emulator.
  *
- * Copyright (c) 2022 Anddrew Starritt
+ * Copyright (c) 2022-2024 Anddrew Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License as
@@ -73,7 +73,7 @@ Int16 Serial::getWord(const Int16 addr) const
             }
 
             if (this->bufferedByteExists) {
-               result = 0xC000;    // ready to read
+               result = DataBus::XC000;    // ready to read
             } else {
                result = 0x0000;
             }
@@ -81,7 +81,7 @@ Int16 Serial::getWord(const Int16 addr) const
          } else {
             // Output always ready if a peripheral has been defined.
             //
-            result = 0xC000;
+            result = DataBus::XC000;
          }
       }
 
@@ -92,7 +92,7 @@ Int16 Serial::getWord(const Int16 addr) const
          result = this->bufferedByte;
          this->bufferedByteExists = false;
       } else {
-         result = 0xFFFF;
+         result = DataBus::allOnes;
       }
 
    } else {
@@ -100,7 +100,7 @@ Int16 Serial::getWord(const Int16 addr) const
       // should we be able to read the lasy byte written??
       //
       std::cerr << "bogus address\n";
-      result = 0xFFFF;
+      result = DataBus::allOnes;
    }
 
    return result;

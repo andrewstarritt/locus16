@@ -2,7 +2,7 @@
  *
  * Locus 16 Emulator clock module, part of the Locus 16 Emulator.
  *
- * Copyright (c) 2022 Anddrew Starritt
+ * Copyright (c) 2022-2024 Anddrew Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License as
@@ -88,7 +88,7 @@ Int16 Clock::getWord(const Int16 addr) const
    } else if (addr == 0x7C02) {
       result = Int16 (this->interval);
    } else {
-      result = 0xFFFF;
+      result = DataBus::allOnes;
    }
 
    return result;

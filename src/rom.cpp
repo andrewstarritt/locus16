@@ -2,7 +2,7 @@
  *
  * Locus 16 ROM module, part of the Locus 16 Emulator.
  *
- * Copyright (c) 2021-2022 Anddrew Starritt
+ * Copyright (c) 2021-2024 Anddrew Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License as
@@ -53,7 +53,7 @@ ROM::ROM (const std::string romFileIn,
    // First initialise all values to NULL.
    //
    for (Int16 addr = this->addrLow; addr < this->addrHigh; addr += 2) {
-      this->setWord (addr, 0xFFFF);
+      this->setWord (addr, DataBus::allOnes);
    }
 }
 
