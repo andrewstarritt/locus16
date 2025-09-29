@@ -1,4 +1,8 @@
 /* diagnostics.h
+ *
+ * SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *
  */
 
 #ifndef L16E_DIAGNOSTICS_H

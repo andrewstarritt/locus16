@@ -2,25 +2,11 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2024  Andrew C. Starritt
- *
- * The Locus 16 Emulator is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * The Locus 16 Emulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License and
- * the Lesser GNU General Public License along with the Locus 16 Emulator.
- * If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
  * Contact details:
  * andrew.starritt@gmail.com
- * PO Box 3118, Prahran East, Victoria 3181, Australia.
  */
 
 #include "alp_processor.h"
@@ -48,7 +34,7 @@
 // The primary ALP hardware mapped address range is =X7F00 to =X7FFF inclusive.
 // For a DataBus::Device we specify inclusive lower address and exclusive upper
 // address, so we would like to specify +32768. However this is beyond the allowed
-// range of a 16 signed integer, so we go one less; and this means we cannot
+// range of a 16 bit signed integer, so we go one less; and this means we cannot
 // address the byte at =X7FFF. No real problem here as nothing of interest at
 // =X7FFF as I recall and ALP registers are addressed by word anyway.
 //
@@ -82,7 +68,8 @@ ALP_Processor::ALP_Processor(const int slotIn,       // 1 for primary etc.
                           nameOf (alpKindIn, slotIn)),
    slot (slotIn),
    alpKind (alpKindIn),
-   numberLevels (alpKindIn == alp1 ? 4 : 2)
+   numberLevels (alpKindIn == alp1 ? 4 : 2),
+   debug (false)
 {
    if ((this->slot != 1) && (this->slot != 2)) {
       fprintf (stderr, "Bad slot: %d\n", slotIn);
@@ -103,7 +90,7 @@ ALP_Processor::ALP_Processor(const int slotIn,       // 1 for primary etc.
 
    const unsigned int useLevel = 1;
    this->level = useLevel;
-   this->interruptRequested = true;
+   this->interruptRequested = false;
 
    SETP(DataBus::addressFirst);    // =X8000
 }
@@ -164,8 +151,12 @@ Int16  ALP_Processor::getPreg() const
 //
 Int16 ALP_Processor::getWord(const Int16 addr) const
 {
-   const unsigned int useLevel = (addr >> 4) & 0x000F;
+   const unsigned int alpAddr = addr & 0x00FF;
+   const unsigned int useLevel = alpAddr >> 4;
+
+   if (alpAddr == 0) return (this->interruptRequested << 4) | this->level;
    if (useLevel >= this->numberLevels) return DataBus::allOnes;
+
    const unsigned int reg = addr & 0x000F;
    switch (reg) {
       case 0x02: return PREG; break;
@@ -173,6 +164,11 @@ Int16 ALP_Processor::getWord(const Int16 addr) const
       case 0x06: return RREG; break;
       case 0x08: return SREG; break;
       case 0x0A: return TREG; break;
+      case 0x0C: {
+            Int16 r = (CTRG << 2) | (VTRG << 1) | (KFLG);
+            return r;
+            break;
+         }
       default:   return DataBus::allOnes; break;
    }
 }
@@ -190,6 +186,12 @@ void ALP_Processor::setWord(const Int16 addr, const Int16 value)
       case 0x06: SETR(value); break;
       case 0x08: SETS(value); break;
       case 0x0A: SETT(value); break;
+      case 0x0C: {
+            CTRG = (value & 4) == 4;
+            VTRG = (value & 2) == 2;
+            KFLG = (value & 1) == 1;
+            break;
+         }
       default:   break;
    }
 }

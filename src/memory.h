@@ -4,25 +4,11 @@
  * together with a memory controller, part of the Locus 16 Emulator
  * application.
  *
- * Copyright (c) 2021-2022  Andrew C. Starritt
- *
- * The Locus 16 Emulator is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * The Locus 16 Emulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License and
- * the Lesser GNU General Public License along with the Locus 16 Emulator.
- * If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
  * Contact details:
  * andrew.starritt@gmail.com
- * PO Box 3118, Prahran East, Victoria 3181, Australia.
  */
 
 #ifndef L16E_MEMORY_H
@@ -40,8 +26,8 @@ public:
 
    // Controls extended memory access - upto 296 kBytes.
    // Map control register addresses are (arbitarily choosen):
-   // 0x7B00
-   // 0x7B02
+   // 0x7B00    - used by primary ALP
+   // 0x7B02    - used by secondary ALP
    // ...
    // 0x7B0E
    //

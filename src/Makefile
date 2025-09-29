@@ -1,7 +1,10 @@
 # Locus 16 Emulator make file
 #
+# SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+# SPDX-License-Identifier: LGPL-3.0-only
+#
 
-.PHONY : all  clean  uninstall always
+.PHONY : all install  clean  uninstall always
 
 TOP=..
 
@@ -10,10 +13,12 @@ OBJ_DIR  = $(TOP)/obj
 
 # Options
 #
-CFLAGS += -Wall -Werror -Wpedantic -std=gnu++11 -pipe -c -D_REENTRANT  -O3 -I.
-LOPTS  += -l readline
-LOPTS  += -l ncurses
-LOPTS  += -l INIReader
+CFLAGS  += -Wall -std=gnu++11 -pipe -c -D_REENTRANT  -O3 -I.
+LNKOPTS += -Wall -std=gnu++11 -pipe -z noexecstack
+
+LNKLIBS  += -l readline
+LNKLIBS  += -l ncurses
+LNKLIBS  += -l INIReader
 
 RESOPTS += --input binary
 RESOPTS += --output elf64-x86-64
@@ -58,17 +63,20 @@ OBJECTS += $(OBJ_DIR)/main.o
 OBJECTS += $(OBJ_DIR)/help_general.o
 OBJECTS += $(OBJ_DIR)/help_usage.o
 OBJECTS += $(OBJ_DIR)/LICENSE.o
+OBJECTS += $(OBJ_DIR)/Preamble.o
 OBJECTS += $(OBJ_DIR)/Warranty.o
 OBJECTS += $(OBJ_DIR)/Redistribute.o
-OBJECTS += $(OBJ_DIR)/Preamble.o
 
 SENTINAL = $(OBJ_DIR)/.sentinal
 
 all : $(TARGET)
 
+install : Makefile
+	@echo "no Locus16 install available yet"
+
 $(TARGET) : $(OBJECTS)  Makefile
 	@echo ""
-	g++ -Wall -std=gnu++11 -pipe $(LOPTS) -o $(TARGET)  $(OBJECTS)
+	g++  $(LNKOPTS) -o $(TARGET)  $(OBJECTS) $(LNKLIBS)
 	@echo ""
 
 build_datetime.cpp: always

@@ -2,20 +2,8 @@
  *
  * Locus 16 memory module, part of the Locus 16 Emulator.
  *
- * Copyright (c) 2021-2022 Anddrew Starritt
- *
- * The Locus 16 Emulator is free software: you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * The Locus 16 Emulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with the Locus 16 Emulator.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
  * Contact details:
  * andrew.starritt@gmail.com
@@ -127,7 +115,7 @@ void MemoryMapper::setWord(const Int16 addr,
 //
 int MemoryMapper::mapAddress (const Int16 addr) const
 {
-   const int slot = this->activeIdentity;
+   const int slot = this->activeIdentity;   // set by execute.run() ~line 283
 
    // Isolate the MS nibble of the address and use this to access the offsets.
    //

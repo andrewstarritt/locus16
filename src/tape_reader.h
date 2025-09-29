@@ -2,12 +2,11 @@
  *
  * Tape reader module, part of the Locus 16 Emulator.
  *
- * Copyright (c) 2022  Andrew C. Starritt
+ * Copyright (c) 2022-2025  Andrew C. Starritt
  *
  * The Locus 16 Emulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
+ * Free Software Foundation, either version 3 of the License.
  *
  * The Locus 16 Emulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -20,7 +19,6 @@
  *
  * Contact details:
  * andrew.starritt@gmail.com
- * PO Box 3118, Prahran East, Victoria 3181, Australia.
  */
 
 #ifndef L16E_TAPE_READER_H

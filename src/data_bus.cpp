@@ -2,25 +2,11 @@
  *
  * This file is part of the Locus 16 Emulator application.
  *
- * Copyright (c) 2021-2024  Andrew C. Starritt
- *
- * The Locus 16 Emulator is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
- *
- * The Locus 16 Emulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License and
- * the Lesser GNU General Public License along with the Locus 16 Emulator.
- * If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2021-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
  *
  * Contact details:
  * andrew.starritt@gmail.com
- * PO Box 3118, Prahran East, Victoria 3181, Australia.
  */
 
 #include "data_bus.h"
@@ -30,6 +16,17 @@
 #include <iomanip>
 
 using namespace L16E;
+
+//------------------------------------------------------------------------------
+// Create a wrapper around strndup, hide that pesky warning.
+//
+static const char* duplicate (const char* source)
+{
+   const int n = strnlen (source, 80);
+   char* result = strndup (source, n);
+   return result;
+}
+
 
 //==============================================================================
 // DataBus::Device
@@ -43,7 +40,7 @@ DataBus::Device::Device(DataBus* const dataBusIn,
    dataBus(dataBusIn),
    addrLow(addrLowIn),
    addrHigh(addrHighIn),
-   name (strndup(nameIn, 40)),
+   name(duplicate(nameIn)),
    isActive(isActiveIn)
 {
    if (this->isActive) {
@@ -325,12 +322,18 @@ bool DataBus::initialiseDevices ()
 void DataBus::listDevices() const
 {
    std::cout << "Available devices" << std::endl;
+   std::cout  << " # Type                 Address-range   Active-Id" << std::endl;
    for (int d = 0; d < this->count; d++) {
       Device* device = this->crate [d];
+      const bool isActive = device->getIsActive();
+
       std::cout << std::right << std::setw(2) << d+1 << " "
                 << std::left << std::setw(20) << device->name<< " "
-                << device->addrRange()
-                << (device->getIsActive() ? " *" : "") << std::endl;
+                << device->addrRange();
+      if (isActive)
+         std::cout<< "  *" << device->getActiveIdentity();
+
+      std::cout<< std::endl;
    }
    std::cout << std::endl;
 }

@@ -1,4 +1,7 @@
 /* peripheral.cpp
+ *
+ * SPDX-FileCopyrightText: 2022-2025  Andrew C. Starritt
+ * SPDX-License-Identifier: LGPL-3.0-only
  */
 
 #include "peripheral.h"
