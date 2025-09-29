@@ -7,10 +7,12 @@
   <highlighting>
 
     <list name="keywords">
-      <item> BEGIN </item>
-      <item> END </item>
       <item> ALP </item>
+      <item> BEGIN </item>
       <item> DATA </item>
+      <item> END </item>
+      <item> ENTRY </item>
+      <item> EXTERNAL </item>
       <item> FINISH </item>
     </list>
 
@@ -79,7 +81,7 @@
       <item> JPZS </item>
       <item> JEZS </item>
       <item> JNZS </item>
-        
+
       <item> SHLA </item>
       <item> SHLR </item>
       <item> SHLS </item>
@@ -135,9 +137,9 @@
         <DetectChar attribute="Comment" context="Comment" char="//"/>
         <AnyChar attribute="Symbol" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;|"/>
         <RegExpr attribute="Goto_Labels" context="#stay" String="[A-Z][A-Z0-9]* *:"/>
-        
+
       </context>
-      
+
       <context attribute="Region Marker" lineEndContext="#pop" name="Region Marker"/>
       <context attribute="String" lineEndContext="#pop" name="String">
         <DetectChar attribute="String" context="#pop" char="&quot;"/>

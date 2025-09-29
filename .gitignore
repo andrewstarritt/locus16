@@ -1,8 +1,11 @@
+/obj/
+__pycache__/
 .sentinal
 locus16
 build_datetime.cpp
 punchout.txt
 *.o
+*.pyc
 *.user
 *.user.11
 *.phx
@@ -10,6 +13,8 @@ punchout.txt
 *.map
 *.log
 *.kate-swp
+x*
+y*
 z*
 *~
 .~lock.*

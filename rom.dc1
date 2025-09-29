@@ -5,12 +5,12 @@
 // Reports to the terminal.
 //
 ALP, =X8000
+RESET:
 BEGIN
-
    // Entry is on level 1, with no registers defined,
    // except the P reg set to =X8000
    //
-   // Force and secondary ALP to enter a wait loop
+   // Force secondary ALP to enter a wait loop
    // Either ALP can/does execute this code.
    //
    SETR   APRIMARYP1,P
@@ -662,5 +662,7 @@ DUMMYSUB:
 
 
 ZZZZZZ:
+
+FINISH, RESET;
 
 // end

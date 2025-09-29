@@ -3,12 +3,12 @@
 // Note: include rom.map file as preamble source code.
 //
 // A no-op "instruction"
-// The emulator stops on no-op and invalid instructions
+// The emulator stops on no-op and other invalid instructions
 //
 NOOP==XFFFE
 CLOCK==X7C00
 
-ALP, =X9000
+ALP, =XA000
 L1ENTRY:
 BEGIN
    SETT   T1SPACE,P
@@ -255,4 +255,6 @@ NUMBERS:
 ALP
 END
 
-// FINISH, ENTRY;
+FINISH, L1ENTRY;
+
+// end
